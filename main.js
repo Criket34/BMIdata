@@ -43,7 +43,7 @@ var calcBmi = function () {
   bmi = Math.round(bmi * 10) / 10;
 
   output.innerHTML = bmi;
-
+//日本肥満学会の判定基準参考
   let category = '';
   if (bmi < 18.5) {
     category = 'やせ型';
