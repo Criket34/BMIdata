@@ -4,15 +4,20 @@
     <meta charset="utf-8">
     <title>BMI計算機</title>
 
-    <!-- Bootstrap CSS（デザイン用フレームワーク） -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" 
-      integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" 
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+      integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
       crossorigin="anonymous">
 
-    <!-- スマホ専用の入力欄のサイズ調整 -->
+    <!-- スマホ専用の入力欄とテンキーサイズ調整 -->
     <style>
       @media (max-width: 768px) {
         #height-input, #weight-input {
+          font-size: 1.5rem;
+          padding: 1rem;
+        }
+
+        .keypad-btn {
           font-size: 1.5rem;
           padding: 1rem;
         }
@@ -39,15 +44,15 @@
           <section class="col-sm-6 col-md-4 pt-4">
             <div class="form-group">
               <label for="height">身長 (cm)</label>
-              <input id="height-input" type="text" class="form-control" value="">
+              <input id="height-input" type="text" class="form-control" inputmode="decimal">
             </div>
 
             <div class="form-group">
               <label for="weight">体重 (kg)</label>
-              <input id="weight-input" type="text" class="form-control" value="">
+              <input id="weight-input" type="text" class="form-control" inputmode="decimal">
             </div>
 
-            <!-- ボタン：計測とリセット -->
+            <!-- ボタン -->
             <input id="button-submit" type="submit" class="btn btn-primary btn-large mr-2" value="計測開始">
             <button id="button-reset" type="button" class="btn btn-secondary btn-large mt-2">リセット</button>
 
@@ -85,7 +90,7 @@
       </div>
     </main>
 
-    <!-- JavaScript -->
+    <!-- JavaScript読み込み -->
     <script src="main.js"></script>
   </body>
 </html>
