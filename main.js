@@ -15,7 +15,7 @@ function isNumericInput(value) {
   return /^[0-9.]+$/.test(value);
 }
 
-// 全角数字および句点（．、。）を半角へ変換
+// 全角数字および句点（「．」、「。」）を半角へ変換
 function toHalfWidth(str) {
   return str.replace(/[０-９．。]/g, function (s) {
     if (s === '．' || s === '。') {
