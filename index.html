@@ -4,15 +4,24 @@
     <meta charset="utf-8">
     <title>BMI計算機</title>
 
-    <!-- 名前：Bootstrap CSS -->
-    <!-- わかりやすいページを簡単に作ってくれるフレームワークの読み込み -->
+    <!-- Bootstrap CSS（デザイン用フレームワーク） -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" 
       integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" 
       crossorigin="anonymous">
+
+    <!-- スマホ専用の入力欄のサイズ調整 -->
+    <style>
+      @media (max-width: 768px) {
+        #height-input, #weight-input {
+          font-size: 1.5rem;
+          padding: 1rem;
+        }
+      }
+    </style>
   </head>
 
   <body>
-    <!-- WEB上部にあるタイトル -->
+    <!-- 上部タイトルバー -->
     <header>
       <nav class="navbar navbar-dark bg-dark">
         <div class="container">
@@ -21,32 +30,28 @@
       </nav>
     </header>
 
-    <!-- タイトル部分とメインページ部分の区切りを追加 -->
+    <!-- メイン内容 -->
     <main>
       <div class="container">
         <div class="row">
 
-          <!-- 身長（ｃｍ）、体重（ｋｇ）それぞれの入力欄の表示と、計算、リセットのボタンを表示 -->
-          <!-- こっちが身長 -->
+          <!-- 入力フォーム -->
           <section class="col-sm-6 col-md-4 pt-4">
             <div class="form-group">
               <label for="height">身長 (cm)</label>
               <input id="height-input" type="text" class="form-control" value="">
             </div>
 
-            <!--こっちが体重-->
             <div class="form-group">
               <label for="weight">体重 (kg)</label>
               <input id="weight-input" type="text" class="form-control" value="">
             </div>
 
-            <!--こっちが計算を開始するボタンを表示する-->
+            <!-- ボタン：計測とリセット -->
             <input id="button-submit" type="submit" class="btn btn-primary btn-large mr-2" value="計測開始">
-            <!--こっちがリセットボタンを表示する-->
             <button id="button-reset" type="button" class="btn btn-secondary btn-large mt-2">リセット</button>
 
             <!-- スマホ・タブレット専用テンキー -->
-            <!--１～９までの数字と小数点（.）をスマホでボタン入力できるようにするボタンを表示-->
             <div id="custom-keypad" class="d-block d-md-none mt-3">
               <div class="btn-group d-flex flex-wrap">
                 <button type="button" class="btn btn-outline-dark m-1 flex-fill keypad-btn">1</button>
@@ -65,8 +70,7 @@
             </div>
           </section>
 
-          <!-- BMI結果表示 -->
-          <!--上記までの要素をＪＳを通して計算した結果を枠内に表示する-->
+          <!-- 結果表示 -->
           <section class="col-sm-6 col-md-4 pt-4">
             <div class="card">
               <div class="card-header">あなたのBMIは</div>
@@ -81,8 +85,7 @@
       </div>
     </main>
 
-    <!-- JavaScriptファイル -->
-    <!--ＨＴＭＬを動かすために必要なＪＳを読み込む-->
+    <!-- JavaScript -->
     <script src="main.js"></script>
   </body>
 </html>
