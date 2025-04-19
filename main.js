@@ -1,68 +1,32 @@
 // 入力欄とボタンの取得
-var height = document.getElementById('height-input');
-var weight = document.getElementById('weight-input');
-var button = document.getElementById('button-submit');
-var resetButton = document.getElementById('button-reset');
+var height = document.getElementById('height-input'); // 身長入力
+var weight = document.getElementById('weight-input'); // 体重入力
+var button = document.getElementById('button-submit'); // 計測ボタン
+var resetButton = document.getElementById('button-reset'); // リセットボタン
 
-// 表示エリア
-var output = document.getElementById('bmi-output');
-var message = document.getElementById('message');
-var historyList = document.getElementById('bmi-history');
+// 結果出力エリア
+var output = document.getElementById('bmi-output'); // BMI表示
+var message = document.getElementById('message');   // メッセージ表示（分類・エラー等）
 
-// 入力のチェックと変換
+// ▼ 入力チェックと変換 ▼
+
+// 半角数字および小数点のみ許可（全角はNG）
 function isNumericInput(value) {
   return /^[0-9.]+$/.test(value);
 }
 
+// 全角数字および句点（．、。）を半角へ変換
 function toHalfWidth(str) {
   return str.replace(/[０-９．。]/g, function (s) {
-    return (s === '．' || s === '。') ? '.' : String.fromCharCode(s.charCodeAt(0) - 65248);
+    if (s === '．' || s === '。') {
+      return '.';
+    }
+    return String.fromCharCode(s.charCodeAt(0) - 65248);
   });
 }
 
-// Cookieの保存と取得
-function setCookie(name, value, days) {
-  const expires = new Date();
-  expires.setDate(expires.getDate() + days);
-  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires.toUTCString()}; path=/`;
-}
+// ▼ BMI計算ロジック ▼
 
-function getCookie(name) {
-  const cookies = document.cookie.split('; ');
-  for (let c of cookies) {
-    const [key, val] = c.split('=');
-    if (key === name) return decodeURIComponent(val);
-  }
-  return null;
-}
-
-// 履歴保存用
-function saveBmiHistory(bmi) {
-  const now = new Date();
-  const entry = {
-    date: now.toLocaleDateString(),
-    time: now.toLocaleTimeString(),
-    bmi: bmi
-  };
-
-  let history = JSON.parse(getCookie('bmiHistory') || '[]');
-  history.unshift(entry);
-  if (history.length > 30) history = history.slice(0, 30); // 最大30件
-  setCookie('bmiHistory', JSON.stringify(history), 30);
-  displayBmiHistory(history);
-}
-
-function displayBmiHistory(history) {
-  historyList.innerHTML = '';
-  history.forEach(entry => {
-    const li = document.createElement('li');
-    li.className = 'list-group-item';
-    li.textContent = `${entry.date} ${entry.time} - BMI: ${entry.bmi}`;
-    historyList.appendChild(li);
-  });
-}
-
-// 計算機能
 var calcBmi = function () {
   var h_value = toHalfWidth(height.value.trim());
   var w_value = toHalfWidth(weight.value.trim());
@@ -75,7 +39,8 @@ var calcBmi = function () {
 
   var h = parseFloat(h_value) / 100;
   var w = parseFloat(w_value);
-  var bmi = Math.round((w / (h * h)) * 10) / 10;
+  var bmi = w / (h * h);
+  bmi = Math.round(bmi * 10) / 10;
 
   output.innerHTML = bmi;
 
@@ -94,12 +59,11 @@ var calcBmi = function () {
     category = '肥満（4度）';
   }
 
-  message.innerHTML = `<span class="text-success">あなたは「${category}」です。</span>`;
-
-  saveBmiHistory(bmi);
+  message.innerHTML = '<span class="text-success">あなたは「' + category + '」です。</span>';
 };
 
-// リセット機能
+// ▼ リセット機能 ▼
+
 var resetForm = function () {
   height.value = '';
   weight.value = '';
@@ -107,32 +71,34 @@ var resetForm = function () {
   message.innerHTML = '';
 };
 
-// イベント登録
+// ▼ イベント登録 ▼
+
 button.addEventListener('click', calcBmi);
 resetButton.addEventListener('click', resetForm);
 
-// スマホテンキー機能
-var focusedInput = null;
-height.addEventListener('focus', function () { focusedInput = height; });
-weight.addEventListener('focus', function () { focusedInput = weight; });
+// ▼ スマホ用テンキー入力サポート ▼
 
+// 現在フォーカスされている入力欄を追跡
+var focusedInput = null;
+height.addEventListener('focus', function () {
+  focusedInput = height;
+});
+weight.addEventListener('focus', function () {
+  focusedInput = weight;
+});
+
+// テンキーの各ボタンに入力動作を割り当てる
 var keypadButtons = document.querySelectorAll('.keypad-btn');
 keypadButtons.forEach(function (btn) {
   btn.addEventListener('click', function () {
     if (!focusedInput) return;
+
     const val = btn.textContent;
+
     if (val === '⌫') {
-      focusedInput.value = focusedInput.value.slice(0, -1);
+      focusedInput.value = focusedInput.value.slice(0, -1); // バックスペース
     } else {
-      focusedInput.value += val;
+      focusedInput.value += val; // 数字や . を追加
     }
   });
-});
-
-// 初期化：履歴を読み込み表示
-window.addEventListener('load', () => {
-  const saved = getCookie('bmiHistory');
-  if (saved) {
-    displayBmiHistory(JSON.parse(saved));
-  }
 });
