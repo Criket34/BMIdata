@@ -1,12 +1,6 @@
 // URLからユーザー名取得
 const urlParams = new URLSearchParams(window.location.search);
 const currentUser = urlParams.get("user");
-
-if (!currentUser) {
-  alert("ログインしていません。ログイン画面に戻ります。");
-  window.location.href = "login.html"; // ログインしていなければリダイレクト
-}
-
 document.getElementById("user-label").textContent += `（${currentUser}）`;
 
 const height = document.getElementById("height-input");
@@ -15,7 +9,7 @@ const submitBtn = document.getElementById("button-submit");
 const resetBtn = document.getElementById("button-reset");
 const output = document.getElementById("bmi-output");
 const message = document.getElementById("message");
-const historyList = document.getElementById("bmi-history");
+const historyList = document.getElementById("history-list");
 
 function isNumericInput(value) {
   return /^[0-9.]+$/.test(value);
@@ -96,6 +90,7 @@ resetBtn.addEventListener("click", resetForm);
 
 // ページ読み込み時に履歴表示
 (function init() {
+  if (!currentUser) return;
   const history = JSON.parse(getCookie(`bmi_history_${currentUser}`) || "[]");
   updateHistoryUI(history);
 })();
