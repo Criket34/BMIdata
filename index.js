@@ -1,43 +1,48 @@
-function setCookie(name, value, days) {
-  const expires = new Date(Date.now() + days * 86400000).toUTCString();
-  document.cookie = name + "=" + encodeURIComponent(value) + "; expires=" + expires + "; path=/";
+// ユーザー情報の保存形式: { ユーザー名: パスワード }
+function getUsers() {
+  const users = localStorage.getItem('users');
+  return users ? JSON.parse(users) : {};
 }
 
-function getCookie(name) {
-  const cookies = document.cookie.split('; ');
-  for (const cookie of cookies) {
-    const [k, v] = cookie.split('=');
-    if (k === name) return decodeURIComponent(v);
-  }
-  return null;
+function saveUsers(users) {
+  localStorage.setItem('users', JSON.stringify(users));
 }
 
-document.getElementById("register-btn").addEventListener("click", function () {
-  const user = document.getElementById("username").value.trim();
-  const pass = document.getElementById("password").value.trim();
+function loginUser(username) {
+  // ユーザー名をクエリパラメータに付けてmain.htmlへ移動
+  window.location.href = `main.html?user=${encodeURIComponent(username)}`;
+}
 
-  if (!user || !pass) {
-    document.getElementById("message").textContent = "ユーザー名とパスワードを入力してください。";
+document.getElementById('registerBtn').addEventListener('click', function () {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+
+  if (!username || !password) {
+    alert('ユーザー名とパスワードを入力してください。');
     return;
   }
 
-  if (getCookie("user_" + user)) {
-    document.getElementById("message").textContent = "このユーザー名は既に登録されています。";
+  const users = getUsers();
+
+  if (users[username]) {
+    alert('このユーザー名は既に登録されています。');
     return;
   }
 
-  setCookie("user_" + user, pass, 30);
-  document.getElementById("message").textContent = "新規登録が完了しました。";
+  users[username] = password;
+  saveUsers(users);
+  alert('ユーザー登録が完了しました。ログインしてください。');
 });
 
-document.getElementById("login-btn").addEventListener("click", function () {
-  const user = document.getElementById("username").value.trim();
-  const pass = document.getElementById("password").value.trim();
-  const storedPass = getCookie("user_" + user);
+document.getElementById('loginBtn').addEventListener('click', function () {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
 
-  if (storedPass && storedPass === pass) {
-    window.location.href = "main.html?user=" + encodeURIComponent(user);
+  const users = getUsers();
+
+  if (users[username] && users[username] === password) {
+    loginUser(username);
   } else {
-    document.getElementById("message").textContent = "ユーザー名またはパスワードが間違っています。";
+    alert('ユーザー名またはパスワードが正しくありません。');
   }
 });
