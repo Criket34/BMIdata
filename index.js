@@ -1,45 +1,43 @@
 function setCookie(name, value, days) {
   const expires = new Date(Date.now() + days * 86400000).toUTCString();
-  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
+  document.cookie = name + "=" + encodeURIComponent(value) + "; expires=" + expires + "; path=/";
 }
 
 function getCookie(name) {
-  const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
-  return match ? decodeURIComponent(match[2]) : null;
+  const cookies = document.cookie.split('; ');
+  for (const cookie of cookies) {
+    const [k, v] = cookie.split('=');
+    if (k === name) return decodeURIComponent(v);
+  }
+  return null;
 }
 
-// ユーザー登録
-document.getElementById('registerBtn').addEventListener('click', () => {
-  const user = document.getElementById('username').value;
-  const pass = document.getElementById('password').value;
+document.getElementById("register-btn").addEventListener("click", function () {
+  const user = document.getElementById("username").value.trim();
+  const pass = document.getElementById("password").value.trim();
 
   if (!user || !pass) {
-    alert('ユーザー名とパスワードを入力してください');
+    document.getElementById("message").textContent = "ユーザー名とパスワードを入力してください。";
     return;
   }
 
-  const existingUsers = JSON.parse(getCookie('users') || '{}');
-  if (existingUsers[user]) {
-    alert('このユーザー名は既に使用されています');
+  if (getCookie("user_" + user)) {
+    document.getElementById("message").textContent = "このユーザー名は既に登録されています。";
     return;
   }
 
-  existingUsers[user] = pass;
-  setCookie('users', JSON.stringify(existingUsers), 30);
-  alert('ユーザー登録が完了しました。ログインしてください。');
+  setCookie("user_" + user, pass, 30);
+  document.getElementById("message").textContent = "新規登録が完了しました。";
 });
 
-// ログイン処理
-document.getElementById('loginBtn').addEventListener('click', () => {
-  const user = document.getElementById('username').value;
-  const pass = document.getElementById('password').value;
+document.getElementById("login-btn").addEventListener("click", function () {
+  const user = document.getElementById("username").value.trim();
+  const pass = document.getElementById("password").value.trim();
+  const storedPass = getCookie("user_" + user);
 
-  const existingUsers = JSON.parse(getCookie('users') || '{}');
-
-  if (existingUsers[user] && existingUsers[user] === pass) {
-    setCookie('loggedInUser', user, 1); // ログイン中ユーザーを保存
-    window.location.href = 'main.html'; // ✅ ログイン成功 → main.htmlへ
+  if (storedPass && storedPass === pass) {
+    window.location.href = "main.html?user=" + encodeURIComponent(user);
   } else {
-    alert('ユーザー名またはパスワードが正しくありません');
+    document.getElementById("message").textContent = "ユーザー名またはパスワードが間違っています。";
   }
 });
