@@ -1,116 +1,155 @@
-// ユーザー名の取得（URLのクエリパラメータから）
-function getUsernameFromQuery() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('user');
+// 入力欄とボタンの取得
+var height = document.getElementById('height-input');
+var weight = document.getElementById('weight-input');
+var button = document.getElementById('button-submit');
+var resetButton = document.getElementById('button-reset');
+
+// 表示エリア
+var output = document.getElementById('bmi-output');
+var message = document.getElementById('message');
+var historyList = document.getElementById('bmi-history');
+
+// 入力のチェックと変換
+function isNumericInput(value) {
+  return /^[0-9.]+$/.test(value);
 }
 
-// Cookieを取得する関数
-function getCookie(name) {
-  const cookies = document.cookie.split(';');
-  for (let cookie of cookies) {
-    const [key, value] = cookie.trim().split('=');
-    if (key === name) {
-      return decodeURIComponent(value);
-    }
-  }
-  return null;
+function toHalfWidth(str) {
+  return str.replace(/[０-９．。]/g, function (s) {
+    return (s === '．' || s === '。') ? '.' : String.fromCharCode(s.charCodeAt(0) - 65248);
+  });
 }
 
-// Cookieに保存する関数
+// Cookieの保存と取得
 function setCookie(name, value, days) {
   const expires = new Date();
   expires.setDate(expires.getDate() + days);
   document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires.toUTCString()}; path=/`;
 }
 
-// BMIを計算する関数
-function calculateBMI(height, weight) {
-  if (height <= 0 || weight <= 0) return null;
-  const bmi = weight / ((height / 100) ** 2);
-  return Math.round(bmi * 10) / 10;
+function getCookie(name) {
+  const cookies = document.cookie.split('; ');
+  for (let c of cookies) {
+    const [key, val] = c.split('=');
+    if (key === name) return decodeURIComponent(val);
+  }
+  return null;
 }
 
-// BMI結果に応じた分類
-function classifyBMI(bmi) {
-  if (bmi < 18.5) return "低体重";
-  if (bmi < 25) return "普通体重";
-  if (bmi < 30) return "肥満（1度）";
-  if (bmi < 35) return "肥満（2度）";
-  if (bmi < 40) return "肥満（3度）";
-  return "肥満（4度）";
+// ユーザー識別付きCookieキーを生成
+function getUserCookieKey(baseKey) {
+  const params = new URLSearchParams(window.location.search);
+  const username = params.get('user') || 'guest';
+  return `${baseKey}_${username}`;
 }
 
-// 履歴の表示
-function displayHistory(username) {
-  const historyKey = `bmi_history_${username}`;
-  const historyData = getCookie(historyKey);
-  const historyList = document.getElementById('history-list');
-  historyList.innerHTML = '';
-
-  if (historyData) {
-    const history = JSON.parse(historyData);
-    history.forEach(entry => {
-      const li = document.createElement('li');
-      li.textContent = `${entry.date}: BMI ${entry.bmi}`;
-      historyList.appendChild(li);
-    });
-  }
-}
-
-// イベントリスナー登録
-document.getElementById('bmi-form').addEventListener('submit', function (e) {
-  e.preventDefault();
-
-  const username = getUsernameFromQuery();
-  if (!username) {
-    alert("ユーザーが特定できません。ログインし直してください。");
-    window.location.href = "index.html";
-    return;
-  }
-
-  const height = parseFloat(document.getElementById('height').value);
-  const weight = parseFloat(document.getElementById('weight').value);
-  const bmi = calculateBMI(height, weight);
-
-  if (!bmi) {
-    alert('正しい数値を入力してください。');
-    return;
-  }
-
-  const category = classifyBMI(bmi);
-  document.getElementById('result').textContent = `あなたのBMIは ${bmi}（${category}）です。`;
-
-  const today = new Date();
+// 履歴保存用
+function saveBmiHistory(bmi) {
+  const now = new Date();
   const entry = {
-    date: `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`,
+    date: now.toLocaleDateString(),
+    time: now.toLocaleTimeString(),
     bmi: bmi
   };
 
-  const historyKey = `bmi_history_${username}`;
-  let history = [];
+  const key = getUserCookieKey('bmiHistory');
+  let history = JSON.parse(getCookie(key) || '[]');
+  history.unshift(entry);
+  if (history.length > 30) history = history.slice(0, 30); // 最大30件
+  setCookie(key, JSON.stringify(history), 30);
+  displayBmiHistory(history);
+}
 
-  const existing = getCookie(historyKey);
-  if (existing) {
-    history = JSON.parse(existing);
-  }
+function displayBmiHistory(history) {
+  historyList.innerHTML = '';
+  history.forEach(entry => {
+    const li = document.createElement('li');
+    li.className = 'list-group-item';
+    li.textContent = `${entry.date} ${entry.time} - BMI: ${entry.bmi}`;
+    historyList.appendChild(li);
+  });
+}
 
-  history.unshift(entry); // 先頭に追加
-  if (history.length > 30) {
-    history = history.slice(0, 30); // 最大30件に制限
-  }
+// 計算機能
+var calcBmi = function () {
+  var h_value = toHalfWidth(height.value.trim());
+  var w_value = toHalfWidth(weight.value.trim());
 
-  setCookie(historyKey, JSON.stringify(history), 30);
-  displayHistory(username);
-});
-
-// 初期化処理
-window.addEventListener('DOMContentLoaded', () => {
-  const username = getUsernameFromQuery();
-  if (!username) {
-    alert("ユーザーが特定できません。ログインし直してください。");
-    window.location.href = "index.html";
+  if (!isNumericInput(h_value) || !isNumericInput(w_value)) {
+    output.innerHTML = '';
+    message.innerHTML = '<span class="text-danger">※ 数値のみを入力してください（例: 170, 65.5）</span>';
     return;
   }
 
-  displayHistory(username);
+  var h = parseFloat(h_value) / 100;
+  var w = parseFloat(w_value);
+  var bmi = Math.round((w / (h * h)) * 10) / 10;
+
+  output.innerHTML = bmi;
+
+  let category = '';
+  if (bmi < 18.5) {
+    category = 'やせ型';
+  } else if (bmi < 25) {
+    category = '普通体重';
+  } else if (bmi < 30) {
+    category = '肥満（1度）';
+  } else if (bmi < 35) {
+    category = '肥満（2度）';
+  } else if (bmi < 40) {
+    category = '肥満（3度）';
+  } else {
+    category = '肥満（4度）';
+  }
+
+  message.innerHTML = `<span class="text-success">あなたは「${category}」です。</span>`;
+
+  saveBmiHistory(bmi);
+};
+
+// リセット機能
+var resetForm = function () {
+  height.value = '';
+  weight.value = '';
+  output.innerHTML = '';
+  message.innerHTML = '';
+};
+
+// イベント登録
+button.addEventListener('click', calcBmi);
+resetButton.addEventListener('click', resetForm);
+
+// スマホテンキー機能
+var focusedInput = null;
+height.addEventListener('focus', function () { focusedInput = height; });
+weight.addEventListener('focus', function () { focusedInput = weight; });
+
+var keypadButtons = document.querySelectorAll('.keypad-btn');
+keypadButtons.forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    if (!focusedInput) return;
+    const val = btn.textContent;
+    if (val === '⌫') {
+      focusedInput.value = focusedInput.value.slice(0, -1);
+    } else {
+      focusedInput.value += val;
+    }
+  });
+});
+
+// 初期化：履歴とユーザー名の表示
+window.addEventListener('load', () => {
+  const params = new URLSearchParams(window.location.search);
+  const username = params.get('user') || 'ゲスト';
+
+  const key = getUserCookieKey('bmiHistory');
+  const saved = getCookie(key);
+  if (saved) {
+    displayBmiHistory(JSON.parse(saved));
+  }
+
+  const userDisplay = document.getElementById('user-display');
+  if (userDisplay) {
+    userDisplay.textContent = `（こんにちは、${username}さん）`;
+  }
 });
