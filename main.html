@@ -1,36 +1,97 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <title>BMI計算機</title>
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-</head>
-<body>
-  <div class="container pt-4">
-    <h2 id="user-label">BMI計算機</h2>
-    <div class="form-group">
-      <label for="height-input">身長 (cm)</label>
-      <input id="height-input" class="form-control" type="text">
-    </div>
-    <div class="form-group">
-      <label for="weight-input">体重 (kg)</label>
-      <input id="weight-input" class="form-control" type="text">
-    </div>
-    <button id="button-submit" class="btn btn-primary">計測</button>
-    <button id="button-reset" class="btn btn-secondary">リセット</button>
-    
-    <div class="mt-3">
-      <h4>結果</h4>
-      <p id="bmi-output"></p>
-      <p id="message"></p>
-    </div>
+  <head>
+    <meta charset="utf-8">
+    <title>BMI計算機</title>
 
-    <div class="mt-4">
-      <h4>履歴</h4>
-      <ul id="history-list" class="list-group"></ul>
-    </div>
-  </div>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+      integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+      crossorigin="anonymous">
 
-  <script src="main.js"></script>
-</body>
+    <!-- スマホ専用の入力欄のサイズ調整 -->
+    <style>
+      @media (max-width: 768px) {
+        #height-input, #weight-input {
+          font-size: 1.5rem;
+          padding: 1rem;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- 上部タイトルバー -->
+    <header>
+      <nav class="navbar navbar-dark bg-dark">
+        <div class="container">
+          <a href="#" class="navbar-brand">BMI計算機</a>
+        </div>
+      </nav>
+    </header>
+
+    <!-- メイン内容 -->
+    <main>
+      <div class="container">
+        <div class="row">
+
+          <!-- 入力フォーム -->
+          <section class="col-sm-6 col-md-4 pt-4">
+            <div class="form-group">
+              <label for="height">身長 (cm)</label>
+              <input id="height-input" type="text" class="form-control" value="">
+            </div>
+
+            <div class="form-group">
+              <label for="weight">体重 (kg)</label>
+              <input id="weight-input" type="text" class="form-control" value="">
+            </div>
+
+            <!-- ボタン：計測とリセット -->
+            <input id="button-submit" type="submit" class="btn btn-primary btn-large mr-2" value="計測開始">
+            <button id="button-reset" type="button" class="btn btn-secondary btn-large mt-2">リセット</button>
+
+            <!-- スマホ専用テンキー -->
+            <div id="custom-keypad" class="d-block d-md-none mt-3">
+              <div class="btn-group d-flex flex-wrap">
+                <button type="button" class="btn btn-outline-dark m-1 flex-fill keypad-btn">1</button>
+                <button type="button" class="btn btn-outline-dark m-1 flex-fill keypad-btn">2</button>
+                <button type="button" class="btn btn-outline-dark m-1 flex-fill keypad-btn">3</button>
+                <button type="button" class="btn btn-outline-dark m-1 flex-fill keypad-btn">4</button>
+                <button type="button" class="btn btn-outline-dark m-1 flex-fill keypad-btn">5</button>
+                <button type="button" class="btn btn-outline-dark m-1 flex-fill keypad-btn">6</button>
+                <button type="button" class="btn btn-outline-dark m-1 flex-fill keypad-btn">7</button>
+                <button type="button" class="btn btn-outline-dark m-1 flex-fill keypad-btn">8</button>
+                <button type="button" class="btn btn-outline-dark m-1 flex-fill keypad-btn">9</button>
+                <button type="button" class="btn btn-outline-dark m-1 flex-fill keypad-btn">0</button>
+                <button type="button" class="btn btn-outline-secondary m-1 flex-fill keypad-btn">.</button>
+                <button type="button" class="btn btn-outline-danger m-1 flex-fill keypad-btn">⌫</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- 結果表示 -->
+          <section class="col-sm-6 col-md-4 pt-4">
+            <div class="card">
+              <div class="card-header">あなたのBMIは</div>
+              <div class="card-body">
+                <div id="bmi-output" class="display-4"></div>
+                <div id="message" class="mt-3"></div>
+              </div>
+            </div>
+
+            <!-- 履歴表示 -->
+            <div class="mt-4">
+              <h5>過去のBMI履歴</h5>
+              <ul id="bmi-history" class="list-group"></ul>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </main>
+
+    <!-- JavaScript -->
+    <script src="main.js"></script>
+  </body>
 </html>
