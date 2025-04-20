@@ -13,6 +13,7 @@ function loginUser(username) {
   window.location.href = `main.html?user=${encodeURIComponent(username)}`;
 }
 
+// 新規登録ボタンの処理
 document.getElementById('register-btn').addEventListener('click', function () {
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value;
@@ -34,6 +35,7 @@ document.getElementById('register-btn').addEventListener('click', function () {
   alert('ユーザー登録が完了しました。ログインしてください。');
 });
 
+// ログインボタンの処理
 document.getElementById('login-btn').addEventListener('click', function () {
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value;
