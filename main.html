@@ -9,12 +9,30 @@
       integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
       crossorigin="anonymous">
 
-    <!-- スマホ専用の入力欄のサイズ調整 -->
+    <!-- スマホ用のズーム防止とレイアウト安定 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- スマホ専用スタイル -->
     <style>
       @media (max-width: 768px) {
-        #height-input, #weight-input {
+        #height-input,
+        #weight-input {
+          font-size: 1.8rem;
+          padding: 1.2rem;
+        }
+
+        #custom-keypad .btn {
           font-size: 1.5rem;
-          padding: 1rem;
+          padding: 1.2rem;
+        }
+
+        #bmi-output {
+          font-size: 2rem;
+        }
+
+        #bmi-history li {
+          font-size: 1rem;
+          padding: 0.8rem;
         }
       }
     </style>
@@ -25,9 +43,7 @@
     <header>
       <nav class="navbar navbar-dark bg-dark">
         <div class="container">
-          <a href="#" class="navbar-brand">
-            BMI計算機 <span id="user-display" class="text-light small"></span>
-          </a>
+          <a href="#" class="navbar-brand">BMI計算機</a>
         </div>
       </nav>
     </header>
@@ -55,7 +71,7 @@
 
             <!-- スマホ専用テンキー -->
             <div id="custom-keypad" class="d-block d-md-none mt-3">
-              <div class="btn-group d-flex flex-wrap">
+              <div class="d-flex flex-wrap justify-content-between">
                 <button type="button" class="btn btn-outline-dark m-1 flex-fill keypad-btn">1</button>
                 <button type="button" class="btn btn-outline-dark m-1 flex-fill keypad-btn">2</button>
                 <button type="button" class="btn btn-outline-dark m-1 flex-fill keypad-btn">3</button>
