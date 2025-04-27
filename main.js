@@ -8,6 +8,13 @@ const heightButton = document.getElementById('focus-height');
 const weightButton = document.getElementById('focus-weight');
 const keypadButtons = document.querySelectorAll('.keypad-btn');
 
+// 全角→半角に変換する関数
+function toHalfWidth(str) {
+  return str.replace(/[！-～]/g, function (tmpStr) {
+    return String.fromCharCode(tmpStr.charCodeAt(0) - 0xFEE0);
+  }).replace(/　/g, " "); // 全角スペースも半角に
+}
+
 // 入力欄をボタンクリックで切り替え
 heightButton.addEventListener('click', () => {
   activeInput = heightInput;
@@ -37,11 +44,13 @@ keypadButtons.forEach(btn => {
 
 // 計算実行
 document.getElementById('button-submit').addEventListener('click', () => {
-  const height = parseFloat(heightInput.value);
-  const weight = parseFloat(weightInput.value);
+  // 全角を半角に変換してから数値化
+  const height = parseFloat(toHalfWidth(heightInput.value));
+  const weight = parseFloat(toHalfWidth(weightInput.value));
 
   if (isNaN(height) || isNaN(weight) || height <= 0 || weight <= 0) {
-    alert('正しい数値を入力してください。');
+    document.getElementById('bmi-output').textContent = 'エラー：正しい数値を入力してください。';
+    document.getElementById('message').textContent = '';
     return;
   }
 
@@ -72,7 +81,7 @@ document.getElementById('button-reset').addEventListener('click', () => {
   document.getElementById('message').textContent = '';
 });
 
-// ユーザーごとにCookieからユーザー名を取得
+// ユーザーごとにURLからユーザー名を取得
 function getCurrentUsername() {
   const params = new URLSearchParams(window.location.search);
   return params.get('user') || '';
