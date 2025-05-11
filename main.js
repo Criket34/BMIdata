@@ -1,3 +1,18 @@
+// Firebase 初期化
+const firebaseConfig = {
+  apiKey: "AIzaSyAqrTNSA-E-fq_63oS3cNjgeC7WYr3l-bQ",
+  authDomain: "bmi-app-a99f3.firebaseapp.com",
+  projectId: "bmi-app-a99f3",
+  storageBucket: "bmi-app-a99f3.appspot.com",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID", // 必要なら追加
+  appId: "YOUR_APP_ID", // 必要なら追加
+  databaseURL: "https://bmi-app-a99f3-default-rtdb.firebaseio.com"
+};
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.database();
+
 // アクティブな入力欄を管理
 let activeInput = null;
 
@@ -7,15 +22,12 @@ const weightInput = document.getElementById('weight-input');
 const heightButton = document.getElementById('focus-height');
 const weightButton = document.getElementById('focus-weight');
 const keypadButtons = document.querySelectorAll('.keypad-btn');
+const errorMessage = document.getElementById('error-message');
+const bmiOutput = document.getElementById('bmi-output');
+const messageOutput = document.getElementById('message');
+const bmiHistoryList = document.getElementById('bmi-history');
 
-// 全角→半角に変換する関数
-function toHalfWidth(str) {
-  return str.replace(/[！-～]/g, function (tmpStr) {
-    return String.fromCharCode(tmpStr.charCodeAt(0) - 0xFEE0);
-  }).replace(/　/g, " "); // 全角スペースも半角に
-}
-
-// 入力欄をボタンクリックで切り替え
+// 入力欄切り替え
 heightButton.addEventListener('click', () => {
   activeInput = heightInput;
   heightInput.classList.add('border-primary');
@@ -28,12 +40,11 @@ weightButton.addEventListener('click', () => {
   heightInput.classList.remove('border-primary');
 });
 
-// テンキーでの入力処理
+// テンキー入力処理
 keypadButtons.forEach(btn => {
   btn.addEventListener('click', () => {
-    if (!activeInput) return; // 入力先が選ばれていない
+    if (!activeInput) return;
     const val = btn.textContent;
-
     if (val === '⌫') {
       activeInput.value = activeInput.value.slice(0, -1);
     } else {
@@ -42,20 +53,28 @@ keypadButtons.forEach(btn => {
   });
 });
 
-// 計算実行
-document.getElementById('button-submit').addEventListener('click', () => {
-  // 全角を半角に変換してから数値化
+// 半角変換
+function toHalfWidth(str) {
+  return str.replace(/[！-～]/g, tmpStr =>
+    String.fromCharCode(tmpStr.charCodeAt(0) - 0xFEE0)
+  ).replace(/　/g, " ");
+}
+
+// BMI計算と保存
+document.getElementById('button-submit').addEventListener('click', async () => {
   const height = parseFloat(toHalfWidth(heightInput.value));
   const weight = parseFloat(toHalfWidth(weightInput.value));
 
   if (isNaN(height) || isNaN(weight) || height <= 0 || weight <= 0) {
-    document.getElementById('bmi-output').textContent = 'エラー：正しい数値を入力してください。';
-    document.getElementById('message').textContent = '';
+    bmiOutput.textContent = '';
+    errorMessage.textContent = '正しい数値を入力してください。';
+    messageOutput.textContent = '';
     return;
   }
 
+  errorMessage.textContent = '';
   const bmi = (weight / ((height / 100) ** 2)).toFixed(1);
-  document.getElementById('bmi-output').textContent = bmi;
+  bmiOutput.textContent = bmi;
 
   let message = '';
   if (bmi < 18.5) {
@@ -67,55 +86,66 @@ document.getElementById('button-submit').addEventListener('click', () => {
   } else {
     message = '高度肥満です。';
   }
-  document.getElementById('message').textContent = message;
+  messageOutput.textContent = message;
 
-  saveBMIHistory(bmi);
-  displayHistory();
+  const user = auth.currentUser;
+  if (user) {
+    const ref = db.ref(`bmi_history/${user.uid}`);
+    const newEntry = {
+      date: new Date().toISOString(),
+      value: bmi
+    };
+    const snapshot = await ref.once('value');
+    let history = snapshot.val() ? Object.values(snapshot.val()) : [];
+
+    history.unshift(newEntry);
+    if (history.length > 30) history = history.slice(0, 30);
+
+    const newHistory = {};
+    history.forEach((item, index) => {
+      newHistory[index] = item;
+    });
+
+    await ref.set(newHistory);
+    displayHistory();
+  }
 });
 
-// リセット処理
+// リセット
 document.getElementById('button-reset').addEventListener('click', () => {
   heightInput.value = '';
   weightInput.value = '';
-  document.getElementById('bmi-output').textContent = '';
-  document.getElementById('message').textContent = '';
+  bmiOutput.textContent = '';
+  messageOutput.textContent = '';
+  errorMessage.textContent = '';
 });
 
-// ユーザーごとにURLからユーザー名を取得
-function getCurrentUsername() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('user') || '';
-}
-
-// BMI履歴保存
-function saveBMIHistory(bmi) {
-  const username = getCurrentUsername();
-  if (!username) return;
-
-  const key = `bmi_history_${username}`;
-  let history = JSON.parse(localStorage.getItem(key)) || [];
-
-  history.unshift({ date: new Date().toISOString(), value: bmi });
-  if (history.length > 30) history = history.slice(0, 30);
-
-  localStorage.setItem(key, JSON.stringify(history));
-}
-
-// BMI履歴表示
+// 履歴の表示
 function displayHistory() {
-  const username = getCurrentUsername();
-  if (!username) return;
+  const user = auth.currentUser;
+  if (!user) return;
 
-  const key = `bmi_history_${username}`;
-  const history = JSON.parse(localStorage.getItem(key)) || [];
+  const ref = db.ref(`bmi_history/${user.uid}`);
+  ref.once('value').then(snapshot => {
+    const history = snapshot.val() ? Object.values(snapshot.val()) : [];
 
-  const list = document.getElementById('bmi-history');
-  list.innerHTML = '';
-  history.forEach(entry => {
-    const li = document.createElement('li');
-    li.className = 'list-group-item';
-    const date = new Date(entry.date).toLocaleString();
-    li.textContent = `${date} - ${entry.value}`;
-    list.appendChild(li);
+    bmiHistoryList.innerHTML = '';
+    history.forEach(entry => {
+      const li = document.createElement('li');
+      li.className = 'list-group-item';
+      const date = new Date(entry.date).toLocaleString();
+      li.textContent = `${date} - ${entry.value}`;
+      bmiHistoryList.appendChild(li);
+    });
   });
 }
+
+// 認証確認して履歴読み込み
+auth.onAuthStateChanged(user => {
+  if (!user) {
+    alert('ログイン情報が無効です。ログインページに戻ります。');
+    window.location.href = 'index.html';
+  } else {
+    displayHistory();
+  }
+});
