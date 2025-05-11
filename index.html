@@ -23,26 +23,26 @@
     <button id="register-btn" class="btn btn-secondary mt-2">新規登録</button>
   </div>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
+  <!-- ✅ Firebase SDK（互換モード CDN）-->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 
   <script>
-    // Firebase設定
+    // ✅ Firebase構成
     const firebaseConfig = {
       apiKey: "AIzaSyAqrTNSA-E-fq_63oS3cNjgeC7WYr3l-bQ",
       authDomain: "bmi-app-a99f3.firebaseapp.com",
       projectId: "bmi-app-a99f3",
       storageBucket: "bmi-app-a99f3.appspot.com",
       messagingSenderId: "168322055498",
-      appId: "1:168322055498:web:YOUR_APP_ID_HERE" // 後で取得可能
+      appId: "1:168322055498:web:YOUR_APP_ID_HERE" // ← 必要に応じて更新
     };
 
-    // 初期化
+    // ✅ Firebase初期化
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
   </script>
 
+  <!-- イベント処理 -->
   <script src="index.js"></script>
 </body>
 </html>
