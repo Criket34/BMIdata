@@ -4,8 +4,6 @@ const firebaseConfig = {
   authDomain: "bmi-app-a99f3.firebaseapp.com",
   projectId: "bmi-app-a99f3",
   storageBucket: "bmi-app-a99f3.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID", // 必要なら追加
-  appId: "YOUR_APP_ID", // 必要なら追加
   databaseURL: "https://bmi-app-a99f3-default-rtdb.firebaseio.com"
 };
 firebase.initializeApp(firebaseConfig);
@@ -53,7 +51,7 @@ keypadButtons.forEach(btn => {
   });
 });
 
-// 半角変換
+// 全角→半角変換
 function toHalfWidth(str) {
   return str.replace(/[！-～]/g, tmpStr =>
     String.fromCharCode(tmpStr.charCodeAt(0) - 0xFEE0)
@@ -95,19 +93,9 @@ document.getElementById('button-submit').addEventListener('click', async () => {
       date: new Date().toISOString(),
       value: bmi
     };
-    const snapshot = await ref.once('value');
-    let history = snapshot.val() ? Object.values(snapshot.val()) : [];
 
-    history.unshift(newEntry);
-    if (history.length > 30) history = history.slice(0, 30);
-
-    const newHistory = {};
-    history.forEach((item, index) => {
-      newHistory[index] = item;
-    });
-
-    await ref.set(newHistory);
-    displayHistory();
+    await ref.push(newEntry); // push形式で保存
+    displayHistory(); // 保存後に履歴を再表示
   }
 });
 
@@ -127,10 +115,17 @@ function displayHistory() {
 
   const ref = db.ref(`bmi_history/${user.uid}`);
   ref.once('value').then(snapshot => {
-    const history = snapshot.val() ? Object.values(snapshot.val()) : [];
+    const data = snapshot.val();
+    const history = data ? Object.values(data) : [];
+
+    // 最新順に並び替え
+    history.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // 最大30件まで
+    const recent = history.slice(0, 30);
 
     bmiHistoryList.innerHTML = '';
-    history.forEach(entry => {
+    recent.forEach(entry => {
       const li = document.createElement('li');
       li.className = 'list-group-item';
       const date = new Date(entry.date).toLocaleString();
