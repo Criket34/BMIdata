@@ -6,7 +6,7 @@
 
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6Y/iJTQUOhcWr7x9JvoRxT2MZw1T"
     crossorigin="anonymous">
 
   <!-- レスポンシブスタイル -->
@@ -87,7 +87,7 @@
             <div class="card-header">あなたのBMIは</div>
             <div class="card-body">
               <div id="bmi-output" class="display-4"></div>
-              <div id="error-message" style="font-size: 0.8rem; color: red; margin-top: 5px;"></div> <!-- ★追加 -->
+              <div id="error-message" style="font-size: 0.8rem; color: red; margin-top: 5px;"></div>
               <div id="message" class="mt-3"></div>
             </div>
           </div>
@@ -95,17 +95,22 @@
             <h5>過去のBMI履歴</h5>
             <ul id="bmi-history" class="list-group"></ul>
           </div>
+
+          <!-- グラフページへのボタン -->
+          <div class="mt-3">
+            <button id="view-graph-btn" class="btn btn-info btn-block">グラフで見る</button>
+          </div>
         </section>
       </div>
     </div>
   </main>
 
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-<!-- メインスクリプト -->
-<script src="main.js"></script>
+  <!-- メインスクリプト -->
+  <script src="main.js"></script>
 </body>
 </html>

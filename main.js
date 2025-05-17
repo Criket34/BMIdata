@@ -135,12 +135,20 @@ function displayHistory() {
   });
 }
 
-// 認証確認して履歴読み込み
+// 認証確認して履歴読み込み + グラフボタン処理
 auth.onAuthStateChanged(user => {
   if (!user) {
     alert('ログイン情報が無効です。ログインページに戻ります。');
     window.location.href = 'index.html';
   } else {
     displayHistory();
+
+    // グラフページに遷移
+    const graphButton = document.getElementById('view-graph-btn');
+    if (graphButton) {
+      graphButton.addEventListener('click', () => {
+        window.location.href = `BMI-graph.html?user=${encodeURIComponent(user.uid)}`;
+      });
+    }
   }
 });
