@@ -11,10 +11,8 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-// アクティブな入力欄を管理
 let activeInput = null;
 
-// DOM取得
 const heightInput = document.getElementById('height-input');
 const weightInput = document.getElementById('weight-input');
 const heightButton = document.getElementById('focus-height');
@@ -94,8 +92,8 @@ document.getElementById('button-submit').addEventListener('click', async () => {
       value: bmi
     };
 
-    await ref.push(newEntry); // push形式で保存
-    displayHistory(); // 保存後に履歴を再表示
+    await ref.push(newEntry);
+    displayHistory();
   }
 });
 
@@ -118,10 +116,7 @@ function displayHistory() {
     const data = snapshot.val();
     const history = data ? Object.values(data) : [];
 
-    // 最新順に並び替え
     history.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    // 最大30件まで
     const recent = history.slice(0, 30);
 
     bmiHistoryList.innerHTML = '';
@@ -143,7 +138,6 @@ auth.onAuthStateChanged(user => {
   } else {
     displayHistory();
 
-    // グラフページに遷移
     const graphButton = document.getElementById('view-graph-btn');
     if (graphButton) {
       graphButton.addEventListener('click', () => {
