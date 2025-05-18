@@ -10,79 +10,90 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const database = firebase.database();
 
-// ユーザーIDの取得（main.htmlからクエリで受け取る）
-const params = new URLSearchParams(window.location.search);
-const userId = params.get("user");
+// 開発者向けログ：ファイル読み込み確認
+console.log("BMI-graph.js 読み込み成功");
 
-if (!userId) {
-  alert("ユーザー情報が見つかりません。");
-}
+// ユーザー認証確認
+auth.onAuthStateChanged(user => {
+  if (user) {
+    const userId = user.uid;
+    console.log("ログイン中のユーザーUID:", userId);
 
-// データ取得
-const dbRef = firebase.database().ref(`users/${userId}/history`);
-dbRef.once("value").then(snapshot => {
-  const data = snapshot.val();
-  if (!data) {
-    alert("データが存在しません。");
-    return;
-  }
+    const dbRef = database.ref(`users/${userId}/history`);
+    dbRef.once("value").then(snapshot => {
+      const data = snapshot.val();
+      if (!data) {
+        alert("データが存在しません。");
+        return;
+      }
 
-  const dates = [];
-  const bmiValues = [];
-  const weights = [];
-  const heights = [];
+      const dates = [];
+      const bmiValues = [];
+      const weights = [];
+      const heights = [];
 
-  // データ整形
-  Object.values(data).forEach(entry => {
-    dates.push(entry.date || "日付なし");
-    bmiValues.push(entry.bmi);
-    weights.push(entry.weight);
-    heights.push(entry.height);
-  });
+      Object.values(data).forEach(entry => {
+        dates.push(entry.date || "日付なし");
+        bmiValues.push(entry.bmi);
+        weights.push(entry.weight);
+        heights.push(entry.height);
+      });
 
-  // グラフ描画
-  const ctx = document.getElementById('bmiChart').getContext('2d');
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: dates,
-      datasets: [{
-        label: 'BMI値の推移',
-        data: bmiValues,
-        borderColor: 'rgba(75, 192, 192, 1)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        borderWidth: 2,
-        tension: 0.3
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        tooltip: {
-          callbacks: {
-            afterLabel: function (context) {
-              const index = context.dataIndex;
-              return `体重: ${weights[index]}kg, 身長: ${heights[index]}cm`;
+      const ctx = document.getElementById('bmiChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: dates,
+          datasets: [{
+            label: 'BMI値の推移',
+            data: bmiValues,
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderWidth: 2,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                afterLabel: function (context) {
+                  const index = context.dataIndex;
+                  return `体重: ${weights[index]}kg, 身長: ${heights[index]}cm`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'BMI'
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: '日付'
+              }
             }
           }
         }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: 'BMI'
-          }
-        },
-        x: {
-          title: {
-            display: true,
-            text: '日付'
-          }
-        }
-      }
-    }
-  });
+      });
+
+    }).catch(error => {
+      console.error("データ取得エラー:", error);
+      alert("データの取得に失敗しました。");
+    });
+
+  } else {
+    alert("ログインしていません。ログインページに戻ります。");
+    console.log("ユーザー未ログイン");
+    window.location.href = "index.html"; // ログインページへリダイレクト
+  }
 });
