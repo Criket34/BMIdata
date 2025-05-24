@@ -86,13 +86,30 @@ document.getElementById('button-submit').addEventListener('click', async () => {
 
   const user = auth.currentUser;
   if (user) {
-    const ref = db.ref(`bmi_history/${user.uid}`);
-    const newEntry = {
-      date: new Date().toISOString(),
+    const timestamp = new Date().toISOString();
+
+    // 保存1：従来の履歴（bmi_history）
+    const ref1 = db.ref(`bmi_history/${user.uid}`);
+    const entry1 = {
+      date: timestamp,
       value: bmi
     };
 
-    await ref.push(newEntry);
+    // 保存2：グラフ用履歴（users/UID/history）
+    const ref2 = db.ref(`users/${user.uid}/history`);
+    const entry2 = {
+      date: timestamp,
+      height: height,
+      weight: weight,
+      bmi: bmi
+    };
+
+    // 並行して保存
+    await Promise.all([
+      ref1.push(entry1),
+      ref2.push(entry2)
+    ]);
+
     displayHistory();
   }
 });
