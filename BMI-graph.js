@@ -13,20 +13,24 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const database = firebase.database();
 
-// 開発者向けログ：ファイル読み込み確認
 console.log("BMI-graph.js 読み込み成功");
 
-// ユーザー認証確認
 auth.onAuthStateChanged(user => {
-  if (user) {
-    const userId = user.uid;
-    console.log("ログイン中のユーザーUID:", userId);
+  if (!user) {
+    alert("ログインしていません。ログインページに戻ります。");
+    window.location.href = "index.html";
+    return;
+  }
 
-    const dbRef = database.ref(`users/${userId}/history`);
-    dbRef.once("value").then(snapshot => {
+  const userId = user.uid;
+  console.log("ログイン中のユーザーUID:", userId);
+
+  const dbRef = database.ref(`users/${userId}/history`);
+  dbRef.once("value")
+    .then(snapshot => {
       const data = snapshot.val();
       if (!data) {
-        alert("データが存在しません。");
+        alert("BMI履歴データが存在しません。");
         return;
       }
 
@@ -36,12 +40,16 @@ auth.onAuthStateChanged(user => {
       const heights = [];
 
       Object.values(data).forEach(entry => {
-        dates.push(entry.date || "日付なし");
-        bmiValues.push(entry.bmi);
-        weights.push(entry.weight);
-        heights.push(entry.height);
+        if (entry.bmi && entry.date) {
+          const dateStr = new Date(entry.date).toLocaleDateString(); // YYYY/MM/DD 表示
+          dates.push(dateStr);
+          bmiValues.push(parseFloat(entry.bmi));
+          weights.push(entry.weight || "不明");
+          heights.push(entry.height || "不明");
+        }
       });
 
+      // グラフ描画
       const ctx = document.getElementById('bmiChart').getContext('2d');
       new Chart(ctx, {
         type: 'line',
@@ -53,7 +61,9 @@ auth.onAuthStateChanged(user => {
             borderColor: 'rgba(75, 192, 192, 1)',
             backgroundColor: 'rgba(75, 192, 192, 0.2)',
             borderWidth: 2,
-            tension: 0.3
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 6
           }]
         },
         options: {
@@ -70,7 +80,9 @@ auth.onAuthStateChanged(user => {
           },
           scales: {
             y: {
-              beginAtZero: true,
+              beginAtZero: false,
+              suggestedMin: 10,
+              suggestedMax: 35,
               title: {
                 display: true,
                 text: 'BMI'
@@ -85,15 +97,9 @@ auth.onAuthStateChanged(user => {
           }
         }
       });
-
-    }).catch(error => {
+    })
+    .catch(error => {
       console.error("データ取得エラー:", error);
-      alert("データの取得に失敗しました。");
+      alert("BMIデータの取得に失敗しました。");
     });
-
-  } else {
-    alert("ログインしていません。ログインページに戻ります。");
-    console.log("ユーザー未ログイン");
-    window.location.href = "index.html"; // ログインページへリダイレクト
-  }
 });
