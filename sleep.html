@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>睡眠時間記録</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+</head>
+<body>
+  <div class="container mt-5">
+    <h2>睡眠時間記録</h2>
+    <div class="form-group">
+      <label>就寝時刻（例：23:00）</label>
+      <input type="time" id="sleep-start" class="form-control">
+    </div>
+    <div class="form-group">
+      <label>起床時刻（例：07:00）</label>
+      <input type="time" id="sleep-end" class="form-control">
+    </div>
+    <button id="record-btn" class="btn btn-primary">記録する</button>
+    <hr>
+    <h4>履歴</h4>
+    <ul id="sleep-history" class="list-group"></ul>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+
+  <script src="sleep.js"></script>
+</body>
+</html>
