@@ -34,6 +34,7 @@ auth.onAuthStateChanged(user => {
 
       db.ref(`sleep_history/${user.uid}`).push(entry).then(() => {
         loadSleepHistory(user.uid);
+        showSleepResult(duration);
       });
     });
 
@@ -78,9 +79,34 @@ function loadSleepHistory(uid) {
       exportText += line + "\n";
     });
 
-    // スマホ用表示に反映
     document.getElementById("text-output").textContent = exportText;
   });
+}
+
+// コメント表示
+function showSleepResult(duration) {
+  const resultBox = document.getElementById("result-box");
+  const resultText = document.getElementById("sleep-result");
+  const commentText = document.getElementById("sleep-comment");
+
+  resultBox.style.display = "block";
+  resultText.textContent = `睡眠時間：${duration} 時間`;
+
+  let comment = "";
+  const dur = parseFloat(duration);
+  if (dur < 4) {
+    comment = "睡眠時間が非常に短いです。体調に注意してください。";
+  } else if (dur < 6) {
+    comment = "やや短めの睡眠です。もう少し眠れると理想的です。";
+  } else if (dur <= 8) {
+    comment = "理想的な睡眠時間です。よく休めていますね！";
+  } else if (dur <= 10) {
+    comment = "長めの睡眠です。疲労回復には良いですが寝すぎには注意。";
+  } else {
+    comment = "かなり長い睡眠時間です。昼夜逆転や過眠に注意しましょう。";
+  }
+
+  commentText.textContent = comment;
 }
 
 function downloadTextFile(content) {
