@@ -21,6 +21,22 @@
       overflow-y: auto;
     }
   </style>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>睡眠時間記録</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    @media (max-width: 768px) {
+      #download-btn {
+        display: block;  /* スマホでも常に表示 */
+        width: 100%;
+        margin-top: 10px;
+      }
+    }
+  </style>
 </head>
 <body>
   <!-- ナビバー（上部） -->
@@ -42,7 +58,8 @@
   <main>
     <div class="container pt-4">
       <div class="row">
-        <section class="col-md-6">
+        <!-- 入力フォーム -->
+        <section class="col-md-6 mb-4">
           <div class="form-group">
             <label for="sleep-start">就寝時刻（例: 23:00）</label>
             <input type="time" id="sleep-start" class="form-control">
@@ -52,14 +69,22 @@
             <input type="time" id="sleep-end" class="form-control">
           </div>
           <button id="record-sleep-btn" class="btn btn-primary btn-block">記録する</button>
-          <div id="result-message" class="text-info"></div>
+          <div id="result-message" class="text-info mt-2"></div>
         </section>
 
-        <section class="col-md-6">
+        <!-- 履歴 -->
+        <section class="col-md-6 mb-4">
           <h5>過去の記録</h5>
-          <ul id="sleep-history" class="list-group"></ul>
+          <ul id="sleep-history" class="list-group" style="max-height: 300px; overflow-y: auto;"></ul>
         </section>
       </div>
+
+      <!-- エクスポートセクション -->
+      <hr>
+      <section class="mt-4">
+        <h5>エクスポート</h5>
+        <button id="download-btn" class="btn btn-success">テキストファイルをダウンロード</button>
+      </section>
     </div>
   </main>
 
