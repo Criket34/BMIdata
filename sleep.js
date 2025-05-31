@@ -37,40 +37,58 @@ auth.onAuthStateChanged(user => {
       });
     });
 
+    document.getElementById("download-btn").addEventListener("click", () => {
+      downloadTextFile(exportText);
+    });
+
     loadSleepHistory(user.uid);
   }
 });
 
-// 睡眠時間の計算（翌日またぎ対応）
 function calculateDuration(start, end) {
   const [startH, startM] = start.split(":").map(Number);
   const [endH, endM] = end.split(":").map(Number);
 
   let startMin = startH * 60 + startM;
   let endMin = endH * 60 + endM;
-
-  if (endMin <= startMin) endMin += 24 * 60; // 翌日またぎ
+  if (endMin <= startMin) endMin += 24 * 60;
 
   return ((endMin - startMin) / 60).toFixed(1);
 }
 
-// 履歴読み込み
+let exportText = "";
+
 function loadSleepHistory(uid) {
   const ref = db.ref(`sleep_history/${uid}`);
   ref.once("value").then(snapshot => {
     const list = document.getElementById("sleep-history");
     list.innerHTML = "";
-
+    exportText = "";
     const data = snapshot.val();
     if (!data) return;
 
     const entries = Object.values(data).sort((a, b) => new Date(b.date) - new Date(a.date));
 
     entries.forEach(entry => {
+      const line = `${entry.date}：${entry.sleepStart}～${entry.sleepEnd}（${entry.duration}時間）`;
       const li = document.createElement("li");
       li.className = "list-group-item";
-      li.textContent = `${entry.date}：${entry.sleepStart}～${entry.sleepEnd}（${entry.duration}時間）`;
+      li.textContent = line;
       list.appendChild(li);
+      exportText += line + "\n";
     });
+
+    // スマホ用表示に反映
+    document.getElementById("text-output").textContent = exportText;
   });
+}
+
+function downloadTextFile(content) {
+  const blob = new Blob([content], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "sleep-history.txt";
+  a.click();
+  URL.revokeObjectURL(url);
 }
