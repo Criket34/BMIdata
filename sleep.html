@@ -1,45 +1,35 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>睡眠時間記録</title>
-
-  <!-- Bootstrap CSS -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
-    crossorigin="anonymous">
-
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    #result-message {
-      margin-top: 1rem;
-      font-size: 1.2rem;
-    }
-
-    #sleep-history {
-      max-height: 200px;
-      overflow-y: auto;
-    }
-  </style>
-<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>睡眠時間記録</title>
+
+  <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
   <style>
     @media (max-width: 768px) {
       #download-btn {
-        display: block;  /* スマホでも常に表示 */
+        display: block;
         width: 100%;
         margin-top: 10px;
       }
     }
+
+    #sleep-history {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    #result-box {
+      display: none;
+      margin-top: 1rem;
+    }
   </style>
 </head>
 <body>
-  <!-- ナビバー（上部） -->
+  <!-- ナビバー -->
   <header>
     <nav class="navbar navbar-dark bg-dark">
       <div class="container">
@@ -48,7 +38,7 @@
     </nav>
   </header>
 
-  <!-- ナビゲーションタブ（左上配置） -->
+  <!-- ナビゲーションタブ -->
   <nav class="nav nav-tabs bg-light">
     <a class="nav-item nav-link" href="main.html">BMI</a>
     <a class="nav-item nav-link active" href="sleep.html">睡眠記録</a>
@@ -68,14 +58,22 @@
             <label for="sleep-end">起床時刻（例: 07:00）</label>
             <input type="time" id="sleep-end" class="form-control">
           </div>
-          <button id="record-sleep-btn" class="btn btn-primary btn-block">記録する</button>
-          <div id="result-message" class="text-info mt-2"></div>
+          <button id="record-btn" class="btn btn-primary btn-block">記録する</button>
+
+          <!-- 結果表示エリア -->
+          <div id="result-box" class="alert alert-info mt-3">
+            <div id="sleep-result" class="font-weight-bold"></div>
+            <div id="sleep-comment" class="mt-2"></div>
+          </div>
         </section>
 
-        <!-- 履歴 -->
+        <!-- 履歴表示 -->
         <section class="col-md-6 mb-4">
           <h5>過去の記録</h5>
-          <ul id="sleep-history" class="list-group" style="max-height: 300px; overflow-y: auto;"></ul>
+          <ul id="sleep-history" class="list-group"></ul>
+
+          <!-- スマホ向け履歴テキスト出力 -->
+          <pre id="text-output" class="mt-3 d-block d-md-none"></pre>
         </section>
       </div>
 

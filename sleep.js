@@ -15,7 +15,8 @@ auth.onAuthStateChanged(user => {
     alert("ログインしていません。ログインページに戻ります。");
     window.location.href = "index.html";
   } else {
-    document.getElementById("record-btn").addEventListener("click", () => {
+    // ボタンIDを修正（record-btn → record-sleep-btn）
+    document.getElementById("record-sleep-btn").addEventListener("click", () => {
       const start = document.getElementById("sleep-start").value;
       const end = document.getElementById("sleep-end").value;
 
@@ -38,9 +39,13 @@ auth.onAuthStateChanged(user => {
       });
     });
 
-    document.getElementById("download-btn").addEventListener("click", () => {
-      downloadTextFile(exportText);
-    });
+    // ダウンロードボタン
+    const downloadBtn = document.getElementById("download-btn");
+    if (downloadBtn) {
+      downloadBtn.addEventListener("click", () => {
+        downloadTextFile(exportText);
+      });
+    }
 
     loadSleepHistory(user.uid);
   }
@@ -78,8 +83,6 @@ function loadSleepHistory(uid) {
       list.appendChild(li);
       exportText += line + "\n";
     });
-
-    document.getElementById("text-output").textContent = exportText;
   });
 }
 
