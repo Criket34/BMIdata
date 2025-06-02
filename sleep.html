@@ -91,7 +91,13 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
-  <!-- スクリプト -->
-  <script src="sleep.js"></script>
+  <!-- スクリプトをDOM読み込み後に実行 -->
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const script = document.createElement('script');
+      script.src = 'sleep.js';
+      document.body.appendChild(script);
+    });
+  </script>
 </body>
 </html>

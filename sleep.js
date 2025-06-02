@@ -15,8 +15,8 @@ auth.onAuthStateChanged(user => {
     alert("ログインしていません。ログインページに戻ります。");
     window.location.href = "index.html";
   } else {
-    // ボタンIDを修正（record-btn → record-sleep-btn）
-    document.getElementById("record-sleep-btn").addEventListener("click", () => {
+    // ボタンIDを record-btn に統一
+    document.getElementById("record-btn").addEventListener("click", () => {
       const start = document.getElementById("sleep-start").value;
       const end = document.getElementById("sleep-end").value;
 
@@ -33,10 +33,14 @@ auth.onAuthStateChanged(user => {
         duration: duration
       };
 
-      db.ref(`sleep_history/${user.uid}`).push(entry).then(() => {
-        loadSleepHistory(user.uid);
-        showSleepResult(duration);
-      });
+      db.ref(`sleep_history/${user.uid}`).push(entry)
+        .then(() => {
+          loadSleepHistory(user.uid);
+          showSleepResult(duration);
+        })
+        .catch(err => {
+          alert("記録に失敗しました: " + err.message);
+        });
     });
 
     // ダウンロードボタン
@@ -47,6 +51,7 @@ auth.onAuthStateChanged(user => {
       });
     }
 
+    // 履歴読み込み
     loadSleepHistory(user.uid);
   }
 });
@@ -68,8 +73,11 @@ function loadSleepHistory(uid) {
   const ref = db.ref(`sleep_history/${uid}`);
   ref.once("value").then(snapshot => {
     const list = document.getElementById("sleep-history");
+    const textOutput = document.getElementById("text-output");
     list.innerHTML = "";
     exportText = "";
+    textOutput.textContent = ""; // スマホ用履歴もクリア
+
     const data = snapshot.val();
     if (!data) return;
 
@@ -77,16 +85,23 @@ function loadSleepHistory(uid) {
 
     entries.forEach(entry => {
       const line = `${entry.date}：${entry.sleepStart}～${entry.sleepEnd}（${entry.duration}時間）`;
+      
+      // PC向けリスト表示
       const li = document.createElement("li");
       li.className = "list-group-item";
       li.textContent = line;
       list.appendChild(li);
+
+      // スマホ向けテキストにも追加
       exportText += line + "\n";
     });
+
+    // スマホ用出力（<pre>）に反映
+    textOutput.textContent = exportText;
   });
 }
 
-// コメント表示
+// 結果表示
 function showSleepResult(duration) {
   const resultBox = document.getElementById("result-box");
   const resultText = document.getElementById("sleep-result");
@@ -112,6 +127,7 @@ function showSleepResult(duration) {
   commentText.textContent = comment;
 }
 
+// テキストファイルダウンロード処理
 function downloadTextFile(content) {
   const blob = new Blob([content], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
