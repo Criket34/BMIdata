@@ -26,6 +26,11 @@
       display: none;
       margin-top: 1rem;
     }
+
+    #undo-box {
+      display: none;
+      margin-top: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -72,8 +77,17 @@
           <h5>過去の記録</h5>
           <ul id="sleep-history" class="list-group"></ul>
 
+          <!-- Undoボタン表示エリア -->
+          <div id="undo-box" class="alert alert-warning">
+            <span>直前の削除を元に戻せます。</span>
+            <button id="undo-btn" class="btn btn-sm btn-outline-dark ml-2">元に戻す</button>
+          </div>
+
           <!-- スマホ向け履歴テキスト出力 -->
           <pre id="text-output" class="mt-3 d-block d-md-none"></pre>
+
+          <!-- 最頻クロノタイプ表示 -->
+          <p id="frequent-type" class="mt-3 font-weight-bold text-primary"></p>
         </section>
       </div>
 

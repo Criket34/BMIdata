@@ -1,73 +1,6 @@
-// Firebase初期化
-const firebaseConfig = {
-  apiKey: "AIzaSyAqrTNSA-E-fq_63oS3cNjgeC7WYr3l-bQ",
-  authDomain: "bmi-app-a99f3.firebaseapp.com",
-  projectId: "bmi-app-a99f3",
-  databaseURL: "https://bmi-app-a99f3-default-rtdb.firebaseio.com"
-};
-firebase.initializeApp(firebaseConfig);
+// ...（Firebase初期化とauth処理は省略）
 
-const auth = firebase.auth();
-const db = firebase.database();
-
-auth.onAuthStateChanged(user => {
-  if (!user) {
-    alert("ログインしていません。ログインページに戻ります。");
-    window.location.href = "index.html";
-  } else {
-    // ボタンIDを record-btn に統一
-    document.getElementById("record-btn").addEventListener("click", () => {
-      const start = document.getElementById("sleep-start").value;
-      const end = document.getElementById("sleep-end").value;
-
-      if (!start || !end) {
-        alert("時刻を両方入力してください。");
-        return;
-      }
-
-      const duration = calculateDuration(start, end);
-      const entry = {
-        date: new Date().toISOString().split("T")[0],
-        sleepStart: start,
-        sleepEnd: end,
-        duration: duration
-      };
-
-      db.ref(`sleep_history/${user.uid}`).push(entry)
-        .then(() => {
-          loadSleepHistory(user.uid);
-          showSleepResult(duration);
-        })
-        .catch(err => {
-          alert("記録に失敗しました: " + err.message);
-        });
-    });
-
-    // ダウンロードボタン
-    const downloadBtn = document.getElementById("download-btn");
-    if (downloadBtn) {
-      downloadBtn.addEventListener("click", () => {
-        downloadTextFile(exportText);
-      });
-    }
-
-    // 履歴読み込み
-    loadSleepHistory(user.uid);
-  }
-});
-
-function calculateDuration(start, end) {
-  const [startH, startM] = start.split(":").map(Number);
-  const [endH, endM] = end.split(":").map(Number);
-
-  let startMin = startH * 60 + startM;
-  let endMin = endH * 60 + endM;
-  if (endMin <= startMin) endMin += 24 * 60;
-
-  return ((endMin - startMin) / 60).toFixed(1);
-}
-
-let exportText = "";
+let lastDeleted = null; // Undo用に削除データを保持
 
 function loadSleepHistory(uid) {
   const ref = db.ref(`sleep_history/${uid}`);
@@ -76,64 +9,81 @@ function loadSleepHistory(uid) {
     const textOutput = document.getElementById("text-output");
     list.innerHTML = "";
     exportText = "";
-    textOutput.textContent = ""; // スマホ用履歴もクリア
+    textOutput.textContent = "";
 
     const data = snapshot.val();
     if (!data) return;
 
-    const entries = Object.values(data).sort((a, b) => new Date(b.date) - new Date(a.date));
+    const entries = Object.entries(data)
+      .sort((a, b) => new Date(b[1].date) - new Date(a[1].date))
+      .slice(0, 30); // 直近30件
 
-    entries.forEach(entry => {
-      const line = `${entry.date}：${entry.sleepStart}～${entry.sleepEnd}（${entry.duration}時間）`;
-      
-      // PC向けリスト表示
+    const typeCounter = {};
+
+    entries.forEach(([key, entry]) => {
+      const line = `${entry.date}：${entry.sleepStart}～${entry.sleepEnd}（${entry.duration}時間）[${entry.chronotype}]`;
+
+      // list item
       const li = document.createElement("li");
-      li.className = "list-group-item";
-      li.textContent = line;
+      li.className = "list-group-item d-flex justify-content-between align-items-center";
+
+      const span = document.createElement("span");
+      span.textContent = line;
+      li.appendChild(span);
+
+      // 削除ボタン
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "削除";
+      delBtn.className = "btn btn-sm btn-danger";
+      delBtn.addEventListener("click", () => {
+        if (confirm("この記録を削除しますか？")) {
+          // 削除前データ保存
+          lastDeleted = { key, entry };
+          db.ref(`sleep_history/${uid}/${key}`).remove().then(() => {
+            loadSleepHistory(uid);
+            showUndoButton(uid);
+          });
+        }
+      });
+
+      li.appendChild(delBtn);
       list.appendChild(li);
 
-      // スマホ向けテキストにも追加
       exportText += line + "\n";
+
+      // クロノタイプ集計
+      const type = entry.chronotype;
+      if (!typeCounter[type]) typeCounter[type] = 0;
+      typeCounter[type]++;
     });
 
-    // スマホ用出力（<pre>）に反映
     textOutput.textContent = exportText;
+
+    const mostFrequent = Object.entries(typeCounter).sort((a, b) => b[1] - a[1])[0];
+    if (mostFrequent) {
+      const freqBox = document.getElementById("frequent-type");
+      freqBox.textContent = `直近30件で最も多いクロノタイプ：${mostFrequent[0]}（${mostFrequent[1]}回）`;
+    }
   });
 }
 
-// 結果表示
-function showSleepResult(duration) {
-  const resultBox = document.getElementById("result-box");
-  const resultText = document.getElementById("sleep-result");
-  const commentText = document.getElementById("sleep-comment");
+function showUndoButton(uid) {
+  const undoBox = document.getElementById("undo-box");
+  undoBox.innerHTML = "";
 
-  resultBox.style.display = "block";
-  resultText.textContent = `睡眠時間：${duration} 時間`;
+  const undoBtn = document.createElement("button");
+  undoBtn.textContent = "削除を取り消す";
+  undoBtn.className = "btn btn-warning mt-2";
+  undoBtn.addEventListener("click", () => {
+    if (lastDeleted) {
+      const { key, entry } = lastDeleted;
+      db.ref(`sleep_history/${uid}/${key}`).set(entry).then(() => {
+        lastDeleted = null;
+        undoBox.innerHTML = "";
+        loadSleepHistory(uid);
+      });
+    }
+  });
 
-  let comment = "";
-  const dur = parseFloat(duration);
-  if (dur < 4) {
-    comment = "睡眠時間が非常に短いです。体調に注意してください。";
-  } else if (dur < 6) {
-    comment = "やや短めの睡眠です。もう少し眠れると理想的です。";
-  } else if (dur <= 8) {
-    comment = "理想的な睡眠時間です。よく休めていますね！";
-  } else if (dur <= 10) {
-    comment = "長めの睡眠です。疲労回復には良いですが寝すぎには注意。";
-  } else {
-    comment = "かなり長い睡眠時間です。昼夜逆転や過眠に注意しましょう。";
-  }
-
-  commentText.textContent = comment;
-}
-
-// テキストファイルダウンロード処理
-function downloadTextFile(content) {
-  const blob = new Blob([content], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "sleep-history.txt";
-  a.click();
-  URL.revokeObjectURL(url);
+  undoBox.appendChild(undoBtn);
 }
