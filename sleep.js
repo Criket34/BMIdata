@@ -1,6 +1,28 @@
-// ...（Firebase初期化とauth処理は省略）
+// Firebase初期化
+const firebaseConfig = {
+  apiKey: "AIzaSyAqrTNSA-E-fq_63oS3cNjgeC7WYr3l-bQ",
+  authDomain: "bmi-app.firebaseapp.com",
+  databaseURL: "https://bmi-app-default-rtdb.firebaseio.com",
+  projectId: "bmi-app",
+  storageBucket: "bmi-app.appspot.com",
+  messagingSenderId: "1018688729509",
+  appId: "1:1018688729509:web:ea3d2e1f71741e8cb80549"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
 
+let exportText = ""; // テキスト出力用
 let lastDeleted = null; // Undo用に削除データを保持
+
+// ユーザー認証状態を監視し、履歴を読み込み
+auth.onAuthStateChanged(user => {
+  if (user) {
+    loadSleepHistory(user.uid);
+  } else {
+    window.location.href = "index.html"; // ログインページにリダイレクト
+  }
+});
 
 function loadSleepHistory(uid) {
   const ref = db.ref(`sleep_history/${uid}`);
@@ -23,7 +45,6 @@ function loadSleepHistory(uid) {
     entries.forEach(([key, entry]) => {
       const line = `${entry.date}：${entry.sleepStart}～${entry.sleepEnd}（${entry.duration}時間）[${entry.chronotype}]`;
 
-      // list item
       const li = document.createElement("li");
       li.className = "list-group-item d-flex justify-content-between align-items-center";
 
@@ -31,13 +52,11 @@ function loadSleepHistory(uid) {
       span.textContent = line;
       li.appendChild(span);
 
-      // 削除ボタン
       const delBtn = document.createElement("button");
       delBtn.textContent = "削除";
       delBtn.className = "btn btn-sm btn-danger";
       delBtn.addEventListener("click", () => {
         if (confirm("この記録を削除しますか？")) {
-          // 削除前データ保存
           lastDeleted = { key, entry };
           db.ref(`sleep_history/${uid}/${key}`).remove().then(() => {
             loadSleepHistory(uid);
@@ -51,7 +70,6 @@ function loadSleepHistory(uid) {
 
       exportText += line + "\n";
 
-      // クロノタイプ集計
       const type = entry.chronotype;
       if (!typeCounter[type]) typeCounter[type] = 0;
       typeCounter[type]++;
