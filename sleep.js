@@ -189,4 +189,25 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
   });
+
+  // ▼▼▼【ダウンロードボタンのイベント】▼▼▼
+  const downloadBtn = document.getElementById("download-btn");
+  if (downloadBtn) {
+    downloadBtn.addEventListener("click", () => {
+      if (!exportText) {
+        alert("ダウンロードするデータがありません。");
+        return;
+      }
+
+      const blob = new Blob([exportText], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "sleep_history.txt";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    });
+  }
 });
