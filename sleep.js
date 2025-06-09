@@ -106,3 +106,87 @@ function showUndoButton(uid) {
 
   undoBox.appendChild(undoBtn);
 }
+
+// 「記録する」ボタンのイベントリスナー
+document.addEventListener("DOMContentLoaded", () => {
+  const recordBtn = document.getElementById("record-btn");
+  const sleepStartInput = document.getElementById("sleep-start");
+  const sleepEndInput = document.getElementById("sleep-end");
+  const resultBox = document.getElementById("result-box");
+  const sleepResult = document.getElementById("sleep-result");
+  const sleepComment = document.getElementById("sleep-comment");
+
+  recordBtn.addEventListener("click", () => {
+    const sleepStart = sleepStartInput.value;
+    const sleepEnd = sleepEndInput.value;
+
+    if (!sleepStart || !sleepEnd) {
+      alert("就寝時刻と起床時刻を入力してください。");
+      return;
+    }
+
+    const now = new Date();
+    const dateStr = now.toISOString().split("T")[0];
+
+    // 時間計算
+    const [sh, sm] = sleepStart.split(":").map(Number);
+    const [eh, em] = sleepEnd.split(":").map(Number);
+
+    const start = new Date(now);
+    start.setHours(sh, sm, 0, 0);
+
+    const end = new Date(now);
+    end.setHours(eh, em, 0, 0);
+    if (end <= start) end.setDate(end.getDate() + 1); // 翌日
+
+    const durationMs = end - start;
+    const duration = (durationMs / (1000 * 60 * 60)).toFixed(2);
+
+    // クロノタイプ判定
+    let chronotype = "";
+    if (sh < 22) {
+      chronotype = "朝型";
+    } else if (sh < 1) {
+      chronotype = "中間型";
+    } else {
+      chronotype = "夜型";
+    }
+
+    // コメント生成
+    let comment = "";
+    const h = parseInt(duration);
+    if (h < 5) {
+      comment = "睡眠時間が非常に短いです。健康に注意してください。";
+    } else if (h < 6.5) {
+      comment = "やや短めの睡眠です。できるだけ早めに寝ましょう。";
+    } else if (h <= 8) {
+      comment = "適切な睡眠時間です。";
+    } else {
+      comment = "長めの睡眠です。生活リズムを意識しましょう。";
+    }
+
+    if (sh >= 3 || sh < 5) {
+      comment += " 就寝時刻が遅すぎます。生活習慣が乱れている可能性があります。";
+    }
+
+    // 表示
+    sleepResult.textContent = `睡眠時間：${duration} 時間`;
+    sleepComment.textContent = `クロノタイプ：${chronotype}。${comment}`;
+    resultBox.style.display = "block";
+
+    // Firebaseに保存
+    const user = auth.currentUser;
+    if (user) {
+      const newRef = db.ref(`sleep_history/${user.uid}`).push();
+      newRef.set({
+        date: dateStr,
+        sleepStart,
+        sleepEnd,
+        duration,
+        chronotype
+      }).then(() => {
+        loadSleepHistory(user.uid);
+      });
+    }
+  });
+});
