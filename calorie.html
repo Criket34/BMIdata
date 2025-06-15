@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>消費カロリー記録</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"/>
+
+  <style>
+    .entry-group {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <!-- ナビゲーション -->
+  <nav class="navbar navbar-dark bg-dark">
+    <div class="container">
+      <a href="#" class="navbar-brand">消費カロリー記録</a>
+    </div>
+  </nav>
+
+  <main class="container mt-4">
+    <div class="form-group">
+      <label for="user-weight">あなたの体重（kg）</label>
+      <input type="number" id="user-weight" class="form-control" placeholder="例：60" />
+    </div>
+
+    <div id="entries"></div>
+
+    <button id="add-entry-btn" class="btn btn-outline-primary mb-3">＋ 項目を追加</button>
+    <button id="calculate-btn" class="btn btn-success mb-3">消費カロリーを計算</button>
+
+    <div id="result" class="alert alert-info" style="display:none;"></div>
+  </main>
+
+  <!-- JS -->
+  <script src="calorie.js" defer></script>
+</body>
+</html>
