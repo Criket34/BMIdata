@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>消費カロリー記録</title>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     .entry-group {
@@ -17,7 +18,6 @@
   </style>
 </head>
 <body>
-  <!-- ナビゲーション -->
   <nav class="navbar navbar-dark bg-dark">
     <div class="container">
       <a href="#" class="navbar-brand">消費カロリー記録</a>
@@ -30,6 +30,15 @@
       <input type="number" id="user-weight" class="form-control" placeholder="例：60" />
     </div>
 
+    <div class="form-group">
+      <label for="calorie-goal">目標消費カロリー（kcal）</label>
+      <input type="number" id="calorie-goal" class="form-control" placeholder="週に1回のみ設定可能"/>
+      <button id="set-goal-btn" class="btn btn-outline-secondary mt-2">目標を設定</button>
+      <div id="goal-status" class="mt-2 text-muted"></div>
+    </div>
+
+    <hr>
+
     <div id="entries"></div>
 
     <div class="mb-3">
@@ -38,9 +47,10 @@
     </div>
 
     <div id="result" class="alert alert-info" style="display:none;"></div>
+
+    <canvas id="comparisonChart" height="100" style="display:none;"></canvas>
   </main>
 
-  <!-- JS -->
   <script src="calorie.js" defer></script>
 </body>
 </html>

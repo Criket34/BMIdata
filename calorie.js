@@ -3,69 +3,30 @@ document.addEventListener("DOMContentLoaded", () => {
   const addEntryBtn = document.getElementById("add-entry-btn");
   const calculateBtn = document.getElementById("calculate-btn");
   const resultBox = document.getElementById("result");
+  const goalInput = document.getElementById("calorie-goal");
+  const setGoalBtn = document.getElementById("set-goal-btn");
+  const goalStatus = document.getElementById("goal-status");
+  const chartCanvas = document.getElementById("comparisonChart");
 
   const CATEGORIES = {
-    "ウォーキング": {
-      "時速4km（ゆっくり）": 3.5,
-      "時速6km（やや速め）": 4.5
-    },
-    "ランニング": {
-      "時速8km程度": 7.0,
-      "時速10km": 10.0,
-      "時速12km": 12.5,
-      "時速14km以上": 14.0
-    },
-    "サイクリング": {
-      "ゆっくり（時速15km未満）": 4.5,
-      "普通（時速15〜20km）": 6.0,
-      "速い（時速20〜25km）": 9.0
-    },
-    "筋トレ（自重）": {
-      "腕立て伏せ": 5.0,
-      "スクワット": 5.0,
-      "ランジ": 6.0,
-      "プランク": 3.5,
-      "クランチ（腹筋）": 5.0,
-      "レッグレイズ": 4.0,
-      "サイドプランク": 3.5,
-      "ヒップリフト": 4.0
-    },
-    "ストレッチ・軽運動": {
-      "ラジオ体操第一": 4.0,
-      "軽いストレッチ": 2.0,
-      "壁腕立て": 2.0,
-      "足踏み": 2.0
-    },
-    "その他運動": {
-      "バーピージャンプ": 10.0,
-      "マウンテンクライマー": 8.0,
-      "ジャンピングジャック": 8.0,
-      "ハイニー（もも上げ）": 7.0,
-      "ニートゥチェスト": 5.0,
-      "ステップ昇降": 6.0,
-      "カーフレイズ": 3.0,
-      "クライマーもどき": 5.0
-    },
-    "水泳": {
-      "平泳ぎ": 8.0,
-      "背泳ぎ": 8.0,
-      "クロール（中強度）": 10.0,
-      "クロール（高速）": 12.0,
-      "バタフライ": 13.0
-    }
+    "ウォーキング": { "時速4km（ゆっくり）": 3.5, "時速6km（やや速め）": 4.5 },
+    "ランニング": { "時速8km程度": 7.0, "時速10km": 10.0, "時速12km": 12.5, "時速14km以上": 14.0 },
+    "サイクリング": { "ゆっくり（時速15km未満）": 4.5, "普通（時速15〜20km）": 6.0, "速い（時速20〜25km）": 9.0 },
+    "筋トレ（自重）": { "腕立て伏せ": 5.0, "スクワット": 5.0, "ランジ": 6.0, "プランク": 3.5, "クランチ（腹筋）": 5.0, "レッグレイズ": 4.0, "サイドプランク": 3.5, "ヒップリフト": 4.0 },
+    "ストレッチ・軽運動": { "ラジオ体操第一": 4.0, "軽いストレッチ": 2.0, "壁腕立て": 2.0, "足踏み": 2.0 },
+    "その他運動": { "バーピージャンプ": 10.0, "マウンテンクライマー": 8.0, "ジャンピングジャック": 8.0, "ハイニー（もも上げ）": 7.0, "ニートゥチェスト": 5.0, "ステップ昇降": 6.0, "カーフレイズ": 3.0, "クライマーもどき": 5.0 },
+    "水泳": { "平泳ぎ": 8.0, "背泳ぎ": 8.0, "クロール（中強度）": 10.0, "クロール（高速）": 12.0, "バタフライ": 13.0 }
   };
 
   const createEntry = () => {
     const div = document.createElement("div");
     div.className = "entry-group";
 
-    // カテゴリー選択
     const categorySelect = document.createElement("select");
     categorySelect.className = "form-control mb-2";
     categorySelect.innerHTML = `<option disabled selected>運動カテゴリーを選択</option>` +
       Object.keys(CATEGORIES).map(cat => `<option value="${cat}">${cat}</option>`).join("");
 
-    // 運動名選択（動的に変化）
     const activitySelect = document.createElement("select");
     activitySelect.className = "form-control mb-2";
     activitySelect.disabled = true;
@@ -73,25 +34,20 @@ document.addEventListener("DOMContentLoaded", () => {
     categorySelect.addEventListener("change", () => {
       const selectedCategory = categorySelect.value;
       const activities = CATEGORIES[selectedCategory];
-
       activitySelect.innerHTML = `<option disabled selected>運動名を選択</option>` +
         Object.entries(activities).map(([name]) => `<option value="${name}">${name}</option>`).join("");
       activitySelect.disabled = false;
     });
 
-    // 時間入力
     const durationInput = document.createElement("input");
     durationInput.type = "number";
     durationInput.placeholder = "運動時間（分）";
     durationInput.className = "form-control mb-2";
 
-    // 削除ボタン
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "削除";
     deleteBtn.className = "btn btn-sm btn-danger";
-    deleteBtn.addEventListener("click", () => {
-      entriesContainer.removeChild(div);
-    });
+    deleteBtn.addEventListener("click", () => entriesContainer.removeChild(div));
 
     div.appendChild(categorySelect);
     div.appendChild(activitySelect);
@@ -102,6 +58,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   addEntryBtn.addEventListener("click", createEntry);
 
+  let chart; // Chartインスタンス
+
   calculateBtn.addEventListener("click", () => {
     const entries = entriesContainer.querySelectorAll(".entry-group");
     let totalCalories = 0;
@@ -110,17 +68,68 @@ document.addEventListener("DOMContentLoaded", () => {
       const category = entry.querySelectorAll("select")[0].value;
       const activity = entry.querySelectorAll("select")[1].value;
       const minutes = parseFloat(entry.querySelector("input").value);
-
       if (!category || !activity || isNaN(minutes) || minutes <= 0) return;
-
       const calPerMin = CATEGORIES[category][activity];
       totalCalories += calPerMin * minutes;
     });
 
     resultBox.textContent = `合計消費カロリー：${totalCalories.toFixed(2)} kcal`;
     resultBox.style.display = "block";
+
+    const goal = parseFloat(localStorage.getItem("calorieGoal")) || 0;
+
+    if (goal > 0) {
+      if (chart) chart.destroy(); // 前回のグラフを破棄
+      chartCanvas.style.display = "block";
+      chart = new Chart(chartCanvas, {
+        type: 'bar',
+        data: {
+          labels: ['目標', '本日'],
+          datasets: [{
+            label: 'kcal',
+            backgroundColor: ['#ccc', '#4caf50'],
+            data: [goal, totalCalories]
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+  });
+
+  setGoalBtn.addEventListener("click", () => {
+    const newGoal = parseFloat(goalInput.value);
+    if (isNaN(newGoal) || newGoal <= 0) {
+      alert("有効なカロリー数を入力してください。");
+      return;
+    }
+
+    const lastSetDate = localStorage.getItem("goalSetDate");
+    const now = new Date();
+    if (lastSetDate) {
+      const diffDays = (now - new Date(lastSetDate)) / (1000 * 60 * 60 * 24);
+      if (diffDays < 7) {
+        const remaining = Math.ceil(7 - diffDays);
+        goalStatus.textContent = `※ 目標はあと${remaining}日間変更できません。`;
+        return;
+      }
+    }
+
+    localStorage.setItem("calorieGoal", newGoal);
+    localStorage.setItem("goalSetDate", now.toISOString());
+    goalStatus.textContent = `目標カロリー（${newGoal} kcal）を設定しました。`;
   });
 
   // 初期表示
   createEntry();
+
+  // 初期状態に応じた目標ステータス表示
+  const goal = localStorage.getItem("calorieGoal");
+  if (goal) {
+    goalStatus.textContent = `現在の目標：${goal} kcal`;
+  }
 });
