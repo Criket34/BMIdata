@@ -7,6 +7,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const setGoalBtn = document.getElementById("set-goal-btn");
   const goalStatus = document.getElementById("goal-status");
   const chartCanvas = document.getElementById("comparisonChart");
+  const weightInput = document.getElementById("user-weight");
+  const historyList = document.getElementById("history-list");
+
+  const DEFAULT_WEIGHT = 60;
 
   const CATEGORIES = {
     "ウォーキング": { "時速4km（ゆっくり）": 3.5, "時速6km（やや速め）": 4.5 },
@@ -17,6 +21,8 @@ document.addEventListener("DOMContentLoaded", () => {
     "その他運動": { "バーピージャンプ": 10.0, "マウンテンクライマー": 8.0, "ジャンピングジャック": 8.0, "ハイニー（もも上げ）": 7.0, "ニートゥチェスト": 5.0, "ステップ昇降": 6.0, "カーフレイズ": 3.0, "クライマーもどき": 5.0 },
     "水泳": { "平泳ぎ": 8.0, "背泳ぎ": 8.0, "クロール（中強度）": 10.0, "クロール（高速）": 12.0, "バタフライ": 13.0 }
   };
+
+  let chart;
 
   const createEntry = () => {
     const div = document.createElement("div");
@@ -31,18 +37,40 @@ document.addEventListener("DOMContentLoaded", () => {
     activitySelect.className = "form-control mb-2";
     activitySelect.disabled = true;
 
+    const durationInput = document.createElement("input");
+    durationInput.type = "number";
+    durationInput.placeholder = "運動時間（分）";
+    durationInput.className = "form-control mb-2";
+
+    const kcalDisplay = document.createElement("div");
+    kcalDisplay.className = "kcal-result";
+
     categorySelect.addEventListener("change", () => {
       const selectedCategory = categorySelect.value;
       const activities = CATEGORIES[selectedCategory];
       activitySelect.innerHTML = `<option disabled selected>運動名を選択</option>` +
         Object.entries(activities).map(([name]) => `<option value="${name}">${name}</option>`).join("");
       activitySelect.disabled = false;
+      kcalDisplay.textContent = "";
     });
 
-    const durationInput = document.createElement("input");
-    durationInput.type = "number";
-    durationInput.placeholder = "運動時間（分）";
-    durationInput.className = "form-control mb-2";
+    const updateKcalDisplay = () => {
+      const category = categorySelect.value;
+      const activity = activitySelect.value;
+      const minutes = parseFloat(durationInput.value);
+      const weight = parseFloat(weightInput.value) || DEFAULT_WEIGHT;
+
+      if (category && activity && !isNaN(minutes) && minutes > 0) {
+        const met = CATEGORIES[category][activity];
+        const kcal = met * weight * minutes / 60;
+        kcalDisplay.textContent = `この運動の消費カロリー：約 ${kcal.toFixed(1)} kcal`;
+      } else {
+        kcalDisplay.textContent = "";
+      }
+    };
+
+    activitySelect.addEventListener("change", updateKcalDisplay);
+    durationInput.addEventListener("input", updateKcalDisplay);
 
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "削除";
@@ -52,16 +80,16 @@ document.addEventListener("DOMContentLoaded", () => {
     div.appendChild(categorySelect);
     div.appendChild(activitySelect);
     div.appendChild(durationInput);
+    div.appendChild(kcalDisplay);
     div.appendChild(deleteBtn);
     entriesContainer.appendChild(div);
   };
 
   addEntryBtn.addEventListener("click", createEntry);
 
-  let chart; // Chartインスタンス
-
   calculateBtn.addEventListener("click", () => {
     const entries = entriesContainer.querySelectorAll(".entry-group");
+    const weight = parseFloat(weightInput.value) || DEFAULT_WEIGHT;
     let totalCalories = 0;
 
     entries.forEach(entry => {
@@ -69,17 +97,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const activity = entry.querySelectorAll("select")[1].value;
       const minutes = parseFloat(entry.querySelector("input").value);
       if (!category || !activity || isNaN(minutes) || minutes <= 0) return;
-      const calPerMin = CATEGORIES[category][activity];
-      totalCalories += calPerMin * minutes;
+      const met = CATEGORIES[category][activity];
+      totalCalories += met * weight * minutes / 60;
     });
 
     resultBox.textContent = `合計消費カロリー：${totalCalories.toFixed(2)} kcal`;
     resultBox.style.display = "block";
 
     const goal = parseFloat(localStorage.getItem("calorieGoal")) || 0;
-
     if (goal > 0) {
-      if (chart) chart.destroy(); // 前回のグラフを破棄
+      if (chart) chart.destroy();
       chartCanvas.style.display = "block";
       chart = new Chart(chartCanvas, {
         type: 'bar',
@@ -93,12 +120,22 @@ document.addEventListener("DOMContentLoaded", () => {
         },
         options: {
           responsive: true,
-          scales: {
-            y: { beginAtZero: true }
-          }
+          scales: { y: { beginAtZero: true } }
         }
       });
     }
+
+    const now = new Date().toLocaleString();
+    const historyItem = document.createElement("li");
+    historyItem.className = "list-group-item d-flex justify-content-between align-items-center";
+    historyItem.textContent = `${now}：${totalCalories.toFixed(1)} kcal`;
+
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "削除";
+    delBtn.className = "btn btn-sm btn-outline-danger";
+    delBtn.addEventListener("click", () => historyList.removeChild(historyItem));
+    historyItem.appendChild(delBtn);
+    historyList.prepend(historyItem);
   });
 
   setGoalBtn.addEventListener("click", () => {
@@ -124,10 +161,8 @@ document.addEventListener("DOMContentLoaded", () => {
     goalStatus.textContent = `目標カロリー（${newGoal} kcal）を設定しました。`;
   });
 
-  // 初期表示
-  createEntry();
+  createEntry(); // 初期項目
 
-  // 初期状態に応じた目標ステータス表示
   const goal = localStorage.getItem("calorieGoal");
   if (goal) {
     goalStatus.textContent = `現在の目標：${goal} kcal`;
