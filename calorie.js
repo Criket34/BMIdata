@@ -1,3 +1,22 @@
+// Firebase初期化
+const firebaseConfig = {
+  apiKey: "AIzaSyAqrTNSA-E-fq_63oS3cNjgeC7WYr3l-bQ",
+  authDomain: "bmi-app-4f43e.firebaseapp.com",
+  projectId: "bmi-app-4f43e",
+  storageBucket: "bmi-app-4f43e.appspot.com",
+  messagingSenderId: "456396663253",
+  appId: "1:456396663253:web:07a2e25f65d429bc656e44"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+let currentUser;
+
+// 匿名ログイン
+firebase.auth().signInAnonymously().then(userCredential => {
+  currentUser = userCredential.user;
+  loadHistoryFromFirestore();
+});
+
 document.addEventListener("DOMContentLoaded", () => {
   const entriesContainer = document.getElementById("entries");
   const addEntryBtn = document.getElementById("add-entry-btn");
@@ -87,7 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   addEntryBtn.addEventListener("click", createEntry);
 
-  calculateBtn.addEventListener("click", () => {
+  calculateBtn.addEventListener("click", async () => {
     const entries = entriesContainer.querySelectorAll(".entry-group");
     const weight = parseFloat(weightInput.value) || DEFAULT_WEIGHT;
     let totalCalories = 0;
@@ -125,18 +144,51 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    const now = new Date().toLocaleString();
+    const now = new Date();
+    const entry = {
+      kcal: totalCalories,
+      timestamp: firebase.firestore.Timestamp.fromDate(now)
+    };
+
+    if (currentUser) {
+      await db.collection("calorieRecords").add({
+        uid: currentUser.uid,
+        ...entry
+      });
+    }
+
+    addHistoryItem(now.toLocaleString(), totalCalories.toFixed(1));
+  });
+
+  const addHistoryItem = (timeStr, kcalStr) => {
     const historyItem = document.createElement("li");
     historyItem.className = "list-group-item d-flex justify-content-between align-items-center";
-    historyItem.textContent = `${now}：${totalCalories.toFixed(1)} kcal`;
+    historyItem.textContent = `${timeStr}：${kcalStr} kcal`;
 
     const delBtn = document.createElement("button");
     delBtn.textContent = "削除";
     delBtn.className = "btn btn-sm btn-outline-danger";
     delBtn.addEventListener("click", () => historyList.removeChild(historyItem));
+
     historyItem.appendChild(delBtn);
     historyList.prepend(historyItem);
-  });
+  };
+
+  async function loadHistoryFromFirestore() {
+    if (!currentUser) return;
+    const snapshot = await db.collection("calorieRecords")
+      .where("uid", "==", currentUser.uid)
+      .orderBy("timestamp", "desc")
+      .limit(30)
+      .get();
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const timeStr = data.timestamp.toDate().toLocaleString();
+      const kcalStr = data.kcal.toFixed(1);
+      addHistoryItem(timeStr, kcalStr);
+    });
+  }
 
   setGoalBtn.addEventListener("click", () => {
     const newGoal = parseFloat(goalInput.value);
