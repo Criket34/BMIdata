@@ -11,7 +11,6 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 let currentUser;
 
-// 匿名ログイン
 firebase.auth().signInAnonymously().then(userCredential => {
   currentUser = userCredential.user;
   loadHistoryFromFirestore();
@@ -35,10 +34,25 @@ document.addEventListener("DOMContentLoaded", () => {
     "ウォーキング": { "時速4km（ゆっくり）": 3.5, "時速6km（やや速め）": 4.5 },
     "ランニング": { "時速8km程度": 7.0, "時速10km": 10.0, "時速12km": 12.5, "時速14km以上": 14.0 },
     "サイクリング": { "ゆっくり（時速15km未満）": 4.5, "普通（時速15〜20km）": 6.0, "速い（時速20〜25km）": 9.0 },
-    "筋トレ（自重）": { "腕立て伏せ": 5.0, "スクワット": 5.0, "ランジ": 6.0, "プランク": 3.5, "クランチ（腹筋）": 5.0, "レッグレイズ": 4.0, "サイドプランク": 3.5, "ヒップリフト": 4.0 },
-    "ストレッチ・軽運動": { "ラジオ体操第一": 4.0, "軽いストレッチ": 2.0, "壁腕立て": 2.0, "足踏み": 2.0 },
-    "その他運動": { "バーピージャンプ": 10.0, "マウンテンクライマー": 8.0, "ジャンピングジャック": 8.0, "ハイニー（もも上げ）": 7.0, "ニートゥチェスト": 5.0, "ステップ昇降": 6.0, "カーフレイズ": 3.0, "クライマーもどき": 5.0 },
-    "水泳": { "平泳ぎ": 8.0, "背泳ぎ": 8.0, "クロール（中強度）": 10.0, "クロール（高速）": 12.0, "バタフライ": 13.0 }
+    "筋トレ（自重）": {
+      "腕立て伏せ": 5.0, "スクワット": 5.0, "ランジ": 6.0, "プランク": 3.5,
+      "クランチ（腹筋）": 5.0, "レッグレイズ": 4.0, "サイドプランク": 3.5,
+      "ヒップリフト": 4.0
+    },
+    "ストレッチ・軽運動": {
+      "ラジオ体操第一": 4.0, "軽いストレッチ": 2.0, "壁腕立て": 2.0,
+      "足踏み": 2.0
+    },
+    "その他運動": {
+      "バーピージャンプ": 10.0, "マウンテンクライマー": 8.0,
+      "ジャンピングジャック": 8.0, "ハイニー（もも上げ）": 7.0,
+      "ニートゥチェスト": 5.0, "ステップ昇降": 6.0,
+      "カーフレイズ": 3.0, "クライマーもどき": 5.0
+    },
+    "水泳": {
+      "平泳ぎ": 8.0, "背泳ぎ": 8.0, "クロール（中強度）": 10.0,
+      "クロール（高速）": 12.0, "バタフライ": 13.0
+    }
   };
 
   let chart;
@@ -151,16 +165,15 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     if (currentUser) {
-      await db.collection("calorieRecords").add({
+      const docRef = await db.collection("calorieRecords").add({
         uid: currentUser.uid,
         ...entry
       });
+      addHistoryItem(docRef.id, now.toLocaleString(), totalCalories.toFixed(1));
     }
-
-    addHistoryItem(now.toLocaleString(), totalCalories.toFixed(1));
   });
 
-  const addHistoryItem = (timeStr, kcalStr) => {
+  const addHistoryItem = (docId, timeStr, kcalStr) => {
     const historyItem = document.createElement("li");
     historyItem.className = "list-group-item d-flex justify-content-between align-items-center";
     historyItem.textContent = `${timeStr}：${kcalStr} kcal`;
@@ -168,7 +181,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const delBtn = document.createElement("button");
     delBtn.textContent = "削除";
     delBtn.className = "btn btn-sm btn-outline-danger";
-    delBtn.addEventListener("click", () => historyList.removeChild(historyItem));
+    delBtn.addEventListener("click", async () => {
+      if (confirm("この記録を削除しますか？")) {
+        await db.collection("calorieRecords").doc(docId).delete();
+        historyList.removeChild(historyItem);
+      }
+    });
 
     historyItem.appendChild(delBtn);
     historyList.prepend(historyItem);
@@ -176,6 +194,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadHistoryFromFirestore() {
     if (!currentUser) return;
+
     const snapshot = await db.collection("calorieRecords")
       .where("uid", "==", currentUser.uid)
       .orderBy("timestamp", "desc")
@@ -186,7 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = doc.data();
       const timeStr = data.timestamp.toDate().toLocaleString();
       const kcalStr = data.kcal.toFixed(1);
-      addHistoryItem(timeStr, kcalStr);
+      addHistoryItem(doc.id, timeStr, kcalStr);
     });
   }
 
