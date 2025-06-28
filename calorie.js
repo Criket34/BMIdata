@@ -1,258 +1,265 @@
-// Firebase 初期化
+// Firebase初期化
 const firebaseConfig = {
   apiKey: "AIzaSyAqrTNSA-E-fq_63oS3cNjgeC7WYr3l-bQ",
-  authDomain: "your-project-id.firebaseapp.com",
-  projectId: "your-project-id",
+  authDomain: "bmi-app-4f43e.firebaseapp.com",
+  projectId: "bmi-app-4f43e",
+  storageBucket: "bmi-app-4f43e.appspot.com",
+  messagingSenderId: "456396663253",
+  appId: "1:456396663253:web:07a2e25f65d429bc656e44",
+  databaseURL: "https://bmi-app-4f43e-default-rtdb.firebaseio.com"
 };
 firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 const auth = firebase.auth();
-const db = firebase.firestore();
-
-let currentUser = null;
-let lastGoalSetDate = null;
-const calorieData = {
-  "ウォーキング": {
-    "普通歩行": 4,
-    "速歩き": 5,
-  },
-  "ランニング": {
-    "軽いランニング": 10,
-    "全力疾走": 16,
-  },
-  "サイクリング": {
-    "ゆっくりサイクリング": 6,
-    "速いサイクリング": 10,
-  },
-  "筋トレ（自重）": {
-    "腕立て伏せ": 8,
-    "スクワット": 7,
-  },
-  "ストレッチ・軽運動": {
-    "ストレッチ": 2.5,
-    "ヨガ": 3,
-  },
-  "その他運動": {
-    "ダンス": 7,
-    "縄跳び": 12,
-  }
-};
+let currentUser;
 
 document.addEventListener("DOMContentLoaded", () => {
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      currentUser = user;
-      loadHistory();
-      loadCalorieGoal();
-    } else {
-      // ログインしていなければログインページにリダイレクト
-      window.location.href = "login.html";
+  const entriesContainer = document.getElementById("entries");
+  const addEntryBtn = document.getElementById("add-entry-btn");
+  const calculateBtn = document.getElementById("calculate-btn");
+  const resultBox = document.getElementById("result");
+  const goalInput = document.getElementById("calorie-goal");
+  const setGoalBtn = document.getElementById("set-goal-btn");
+  const goalStatus = document.getElementById("goal-status");
+  const chartCanvas = document.getElementById("comparisonChart");
+  const weightInput = document.getElementById("user-weight");
+  const historyList = document.getElementById("history-list");
+  const loginBtn = document.getElementById("login-btn");
+  const logoutBtn = document.getElementById("logout-btn");
+
+  const DEFAULT_WEIGHT = 60;
+
+  const CATEGORIES = {
+    "ウォーキング": { "時速4km（ゆっくり）": 3.5, "時速6km（やや速め）": 4.5 },
+    "ランニング": { "時速8km程度": 7.0, "時速10km": 10.0, "時速12km": 12.5, "時速14km以上": 14.0 },
+    "サイクリング": { "ゆっくり（時速15km未満）": 4.5, "普通（時速15〜20km）": 6.0, "速い（時速20〜25km）": 9.0 },
+    "筋トレ（自重）": {
+      "腕立て伏せ": 5.0, "スクワット": 5.0, "ランジ": 6.0, "プランク": 3.5,
+      "クランチ（腹筋）": 5.0, "レッグレイズ": 4.0, "サイドプランク": 3.5,
+      "ヒップリフト": 4.0
+    },
+    "ストレッチ・軽運動": {
+      "ラジオ体操第一": 4.0, "軽いストレッチ": 2.0, "壁腕立て": 2.0,
+      "足踏み": 2.0
+    },
+    "その他運動": {
+      "バーピージャンプ": 10.0, "マウンテンクライマー": 8.0,
+      "ジャンピングジャック": 8.0, "ハイニー（もも上げ）": 7.0,
+      "ニートゥチェスト": 5.0, "ステップ昇降": 6.0,
+      "カーフレイズ": 3.0, "クライマーもどき": 5.0
+    },
+    "水泳": {
+      "平泳ぎ": 8.0, "背泳ぎ": 8.0, "クロール（中強度）": 10.0,
+      "クロール（高速）": 12.0, "バタフライ": 13.0
     }
-  });
+  };
 
-  document.getElementById("add-entry-btn").addEventListener("click", addEntry);
-  document.getElementById("calculate-btn").addEventListener("click", calculateTotalCalories);
-  document.getElementById("set-goal-btn").addEventListener("click", setCalorieGoal);
+  let chart;
 
-  addEntry(); // 初期表示
-});
+  const createEntry = () => {
+    const div = document.createElement("div");
+    div.className = "entry-group";
 
-function addEntry() {
-  const entryDiv = document.createElement("div");
-  entryDiv.className = "entry-group";
+    const categorySelect = document.createElement("select");
+    categorySelect.className = "form-control mb-2";
+    categorySelect.innerHTML = `<option disabled selected>運動カテゴリーを選択</option>` +
+      Object.keys(CATEGORIES).map(cat => `<option value="${cat}">${cat}</option>`).join("");
 
-  const categorySelect = document.createElement("select");
-  categorySelect.className = "form-control mb-2";
-  categorySelect.innerHTML = `<option disabled selected>運動カテゴリーを選択</option>`;
-  for (let category in calorieData) {
-    categorySelect.innerHTML += `<option value="${category}">${category}</option>`;
-  }
+    const activitySelect = document.createElement("select");
+    activitySelect.className = "form-control mb-2";
+    activitySelect.disabled = true;
 
-  const activitySelect = document.createElement("select");
-  activitySelect.className = "form-control mb-2";
-  activitySelect.disabled = true;
+    const durationInput = document.createElement("input");
+    durationInput.type = "number";
+    durationInput.placeholder = "運動時間（分）";
+    durationInput.className = "form-control mb-2";
 
-  categorySelect.addEventListener("change", () => {
-    const selectedCategory = categorySelect.value;
-    activitySelect.innerHTML = "";
-    for (let activity in calorieData[selectedCategory]) {
-      activitySelect.innerHTML += `<option value="${activity}">${activity}</option>`;
-    }
-    activitySelect.disabled = false;
-    updateCalorieResult();
-  });
+    const kcalDisplay = document.createElement("div");
+    kcalDisplay.className = "kcal-result";
 
-  const timeInput = document.createElement("input");
-  timeInput.type = "number";
-  timeInput.placeholder = "運動時間（分）";
-  timeInput.className = "form-control mb-2";
-
-  const kcalDiv = document.createElement("div");
-  kcalDiv.className = "kcal-result";
-
-  activitySelect.addEventListener("change", updateCalorieResult);
-  timeInput.addEventListener("input", updateCalorieResult);
-
-  function updateCalorieResult() {
-    const category = categorySelect.value;
-    const activity = activitySelect.value;
-    const time = parseFloat(timeInput.value);
-
-    if (category && activity && !isNaN(time)) {
-      const kcalPerMin = calorieData[category][activity];
-      const totalKcal = kcalPerMin * time;
-      kcalDiv.textContent = `消費カロリー：${totalKcal.toFixed(1)} kcal`;
-    } else {
-      kcalDiv.textContent = "";
-    }
-  }
-
-  entryDiv.appendChild(categorySelect);
-  entryDiv.appendChild(activitySelect);
-  entryDiv.appendChild(timeInput);
-  entryDiv.appendChild(kcalDiv);
-  document.getElementById("entries").appendChild(entryDiv);
-}
-
-function calculateTotalCalories() {
-  const weight = parseFloat(document.getElementById("user-weight").value);
-  if (isNaN(weight) || weight <= 0) {
-    alert("体重を正しく入力してください。");
-    return;
-  }
-
-  const entries = document.querySelectorAll(".entry-group");
-  let totalCalories = 0;
-  let activityList = [];
-
-  entries.forEach(entry => {
-    const selects = entry.getElementsByTagName("select");
-    const input = entry.getElementsByTagName("input")[0];
-    const category = selects[0].value;
-    const activity = selects[1].value;
-    const time = parseFloat(input.value);
-
-    if (category && activity && !isNaN(time)) {
-      const kcalPerMin = calorieData[category][activity];
-      const calories = kcalPerMin * time;
-      totalCalories += calories;
-      activityList.push({ category, activity, time, calories });
-    }
-  });
-
-  if (activityList.length === 0) {
-    alert("少なくとも1つの運動項目を正しく入力してください。");
-    return;
-  }
-
-  const resultDiv = document.getElementById("result");
-  resultDiv.style.display = "block";
-  resultDiv.textContent = `合計消費カロリー：${totalCalories.toFixed(1)} kcal`;
-  saveHistory(totalCalories, activityList);
-  showComparisonChart(totalCalories);
-}
-
-function saveHistory(totalCalories, activityList) {
-  if (!currentUser) return;
-  const uid = currentUser.uid;
-  db.collection("calorieHistory").add({
-    uid,
-    timestamp: new Date(),
-    totalCalories,
-    activityList
-  }).then(() => {
-    loadHistory();
-  });
-}
-
-function loadHistory() {
-  if (!currentUser) return;
-  const uid = currentUser.uid;
-  db.collection("calorieHistory")
-    .where("uid", "==", uid)
-    .orderBy("timestamp", "desc")
-    .limit(30)
-    .get()
-    .then(snapshot => {
-      const list = document.getElementById("history-list");
-      list.innerHTML = "";
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const li = document.createElement("li");
-        li.className = "list-group-item";
-        const date = data.timestamp.toDate().toLocaleString();
-        li.textContent = `${date} - ${data.totalCalories.toFixed(1)} kcal`;
-        list.appendChild(li);
-      });
+    categorySelect.addEventListener("change", () => {
+      const selectedCategory = categorySelect.value;
+      const activities = CATEGORIES[selectedCategory];
+      activitySelect.innerHTML = `<option disabled selected>運動名を選択</option>` +
+        Object.entries(activities).map(([name]) => `<option value="${name}">${name}</option>`).join("");
+      activitySelect.disabled = false;
+      kcalDisplay.textContent = "";
     });
-}
 
-function setCalorieGoal() {
-  const goal = parseFloat(document.getElementById("calorie-goal").value);
-  if (isNaN(goal) || goal <= 0) {
-    alert("有効な目標カロリーを入力してください。");
-    return;
-  }
+    const updateKcalDisplay = () => {
+      const category = categorySelect.value;
+      const activity = activitySelect.value;
+      const minutes = parseFloat(durationInput.value);
+      const weight = parseFloat(weightInput.value) || DEFAULT_WEIGHT;
 
-  const now = new Date();
-  if (lastGoalSetDate && (now - lastGoalSetDate < 7 * 24 * 60 * 60 * 1000)) {
-    alert("目標は週に1回のみ変更できます。");
-    return;
-  }
-
-  const uid = currentUser.uid;
-  db.collection("calorieGoals").doc(uid).set({
-    goal,
-    updatedAt: firebase.firestore.Timestamp.fromDate(now)
-  }).then(() => {
-    lastGoalSetDate = now;
-    document.getElementById("goal-status").textContent = `現在の目標：${goal} kcal`;
-  });
-}
-
-function loadCalorieGoal() {
-  const uid = currentUser.uid;
-  db.collection("calorieGoals").doc(uid).get().then(doc => {
-    if (doc.exists) {
-      const data = doc.data();
-      const goal = data.goal;
-      const updatedAt = data.updatedAt.toDate();
-      lastGoalSetDate = updatedAt;
-      document.getElementById("goal-status").textContent = `現在の目標：${goal} kcal`;
-    }
-  });
-}
-
-function showComparisonChart(todayCalories) {
-  const uid = currentUser.uid;
-  db.collection("calorieGoals").doc(uid).get().then(doc => {
-    if (doc.exists) {
-      const goal = doc.data().goal;
-      const ctx = document.getElementById("comparisonChart").getContext("2d");
-      document.getElementById("comparisonChart").style.display = "block";
-
-      if (window.myChart) {
-        window.myChart.destroy();
+      if (category && activity && !isNaN(minutes) && minutes > 0) {
+        const met = CATEGORIES[category][activity];
+        const kcal = met * weight * minutes / 60;
+        kcalDisplay.textContent = `この運動の消費カロリー：約 ${kcal.toFixed(1)} kcal`;
+      } else {
+        kcalDisplay.textContent = "";
       }
+    };
 
-      window.myChart = new Chart(ctx, {
-        type: "bar",
+    activitySelect.addEventListener("change", updateKcalDisplay);
+    durationInput.addEventListener("input", updateKcalDisplay);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "削除";
+    deleteBtn.className = "btn btn-sm btn-danger";
+    deleteBtn.addEventListener("click", () => entriesContainer.removeChild(div));
+
+    div.appendChild(categorySelect);
+    div.appendChild(activitySelect);
+    div.appendChild(durationInput);
+    div.appendChild(kcalDisplay);
+    div.appendChild(deleteBtn);
+    entriesContainer.appendChild(div);
+  };
+
+  addEntryBtn.addEventListener("click", createEntry);
+
+  calculateBtn.addEventListener("click", async () => {
+    const entries = entriesContainer.querySelectorAll(".entry-group");
+    const weight = parseFloat(weightInput.value) || DEFAULT_WEIGHT;
+    let totalCalories = 0;
+
+    entries.forEach(entry => {
+      const category = entry.querySelectorAll("select")[0].value;
+      const activity = entry.querySelectorAll("select")[1].value;
+      const minutes = parseFloat(entry.querySelector("input").value);
+      if (!category || !activity || isNaN(minutes) || minutes <= 0) return;
+      const met = CATEGORIES[category][activity];
+      totalCalories += met * weight * minutes / 60;
+    });
+
+    resultBox.textContent = `合計消費カロリー：${totalCalories.toFixed(2)} kcal`;
+    resultBox.style.display = "block";
+
+    const goal = parseFloat(localStorage.getItem("calorieGoal")) || 0;
+    if (goal > 0) {
+      if (chart) chart.destroy();
+      chartCanvas.style.display = "block";
+      chart = new Chart(chartCanvas, {
+        type: 'bar',
         data: {
-          labels: ["目標", "今日の消費"],
+          labels: ['目標', '本日'],
           datasets: [{
-            label: "カロリー（kcal）",
-            data: [goal, todayCalories],
-            backgroundColor: ["#28a745", "#007bff"]
+            label: 'kcal',
+            backgroundColor: ['#ccc', '#4caf50'],
+            data: [goal, totalCalories]
           }]
         },
         options: {
           responsive: true,
-          scales: {
-            y: {
-              beginAtZero: true
-            }
-          }
+          scales: { y: { beginAtZero: true } }
         }
       });
     }
+
+    const now = new Date();
+    const entry = {
+      kcal: totalCalories,
+      timestamp: now.toISOString()
+    };
+
+    if (currentUser) {
+      const newRef = db.ref(`calorieRecords/${currentUser.uid}`).push();
+      newRef.set(entry);
+      addHistoryItem(newRef.key, now.toLocaleString(), totalCalories.toFixed(1));
+    }
   });
-}
+
+  const addHistoryItem = (id, timeStr, kcalStr) => {
+    const historyItem = document.createElement("li");
+    historyItem.className = "list-group-item d-flex justify-content-between align-items-center";
+    historyItem.textContent = `${timeStr}：${kcalStr} kcal`;
+
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "削除";
+    delBtn.className = "btn btn-sm btn-outline-danger";
+    delBtn.addEventListener("click", () => {
+      if (confirm("この記録を削除しますか？")) {
+        db.ref(`calorieRecords/${currentUser.uid}/${id}`).remove();
+        historyList.removeChild(historyItem);
+      }
+    });
+
+    historyItem.appendChild(delBtn);
+    historyList.prepend(historyItem);
+  };
+
+  async function loadHistoryFromRealtimeDB() {
+    if (!currentUser) return;
+
+    const ref = db.ref(`calorieRecords/${currentUser.uid}`);
+    ref.orderByChild("timestamp").limitToLast(30).once("value", snapshot => {
+      const records = [];
+      snapshot.forEach(child => {
+        records.push({ id: child.key, ...child.val() });
+      });
+
+      records.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      records.forEach(record => {
+        const timeStr = new Date(record.timestamp).toLocaleString();
+        const kcalStr = parseFloat(record.kcal).toFixed(1);
+        addHistoryItem(record.id, timeStr, kcalStr);
+      });
+    });
+  }
+
+  setGoalBtn.addEventListener("click", () => {
+    const newGoal = parseFloat(goalInput.value);
+    if (isNaN(newGoal) || newGoal <= 0) {
+      alert("有効なカロリー数を入力してください。");
+      return;
+    }
+
+    const lastSetDate = localStorage.getItem("goalSetDate");
+    const now = new Date();
+    if (lastSetDate) {
+      const diffDays = (now - new Date(lastSetDate)) / (1000 * 60 * 60 * 24);
+      if (diffDays < 7) {
+        const remaining = Math.ceil(7 - diffDays);
+        goalStatus.textContent = `※ 目標はあと${remaining}日間変更できません。`;
+        return;
+      }
+    }
+
+    localStorage.setItem("calorieGoal", newGoal);
+    localStorage.setItem("goalSetDate", now.toISOString());
+    goalStatus.textContent = `目標カロリー（${newGoal} kcal）を設定しました。`;
+  });
+
+  loginBtn.addEventListener("click", () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(error => {
+      alert("ログイン失敗: " + error.message);
+    });
+  });
+
+  logoutBtn.addEventListener("click", () => {
+    auth.signOut().then(() => {
+      location.reload();
+    });
+  });
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = user;
+      loginBtn.style.display = "none";
+      logoutBtn.style.display = "inline-block";
+      loadHistoryFromRealtimeDB();
+    } else {
+      loginBtn.style.display = "inline-block";
+      logoutBtn.style.display = "none";
+    }
+  });
+
+  createEntry();
+
+  const goal = localStorage.getItem("calorieGoal");
+  if (goal) {
+    goalStatus.textContent = `現在の目標：${goal} kcal`;
+  }
+});
