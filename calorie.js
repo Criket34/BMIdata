@@ -14,6 +14,7 @@ const auth = firebase.auth();
 let currentUser;
 
 document.addEventListener("DOMContentLoaded", () => {
+  // DOM要素取得
   const entriesContainer = document.getElementById("entries");
   const addEntryBtn = document.getElementById("add-entry-btn");
   const calculateBtn = document.getElementById("calculate-btn");
@@ -29,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const DEFAULT_WEIGHT = 60;
 
+  // 運動カテゴリとMET値
   const CATEGORIES = {
     "ウォーキング": { "時速4km（ゆっくり）": 3.5, "時速6km（やや速め）": 4.5 },
     "ランニング": { "時速8km程度": 7.0, "時速10km": 10.0, "時速12km": 12.5, "時速14km以上": 14.0 },
@@ -56,6 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let chart;
 
+  // エントリ追加
   const createEntry = () => {
     const div = document.createElement("div");
     div.className = "entry-group";
@@ -91,7 +94,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const activity = activitySelect.value;
       const minutes = parseFloat(durationInput.value);
       const weight = parseFloat(weightInput.value) || DEFAULT_WEIGHT;
-
       if (category && activity && !isNaN(minutes) && minutes > 0) {
         const met = CATEGORIES[category][activity];
         const kcal = met * weight * minutes / 60;
@@ -125,12 +127,13 @@ document.addEventListener("DOMContentLoaded", () => {
     let totalCalories = 0;
 
     entries.forEach(entry => {
-      const category = entry.querySelectorAll("select")[0].value;
-      const activity = entry.querySelectorAll("select")[1].value;
+      const [categorySelect, activitySelect] = entry.querySelectorAll("select");
       const minutes = parseFloat(entry.querySelector("input").value);
-      if (!category || !activity || isNaN(minutes) || minutes <= 0) return;
-      const met = CATEGORIES[category][activity];
-      totalCalories += met * weight * minutes / 60;
+      if (!categorySelect || !activitySelect || isNaN(minutes) || minutes <= 0) return;
+      const met = CATEGORIES[categorySelect.value]?.[activitySelect.value];
+      if (met) {
+        totalCalories += met * weight * minutes / 60;
+      }
     });
 
     resultBox.textContent = `合計消費カロリー：${totalCalories.toFixed(2)} kcal`;
@@ -171,9 +174,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   const addHistoryItem = (id, timeStr, kcalStr) => {
-    const historyItem = document.createElement("li");
-    historyItem.className = "list-group-item d-flex justify-content-between align-items-center";
-    historyItem.textContent = `${timeStr}：${kcalStr} kcal`;
+    const item = document.createElement("li");
+    item.className = "list-group-item d-flex justify-content-between align-items-center";
+    item.textContent = `${timeStr}：${kcalStr} kcal`;
 
     const delBtn = document.createElement("button");
     delBtn.textContent = "削除";
@@ -181,24 +184,22 @@ document.addEventListener("DOMContentLoaded", () => {
     delBtn.addEventListener("click", () => {
       if (confirm("この記録を削除しますか？")) {
         db.ref(`calorieRecords/${currentUser.uid}/${id}`).remove();
-        historyList.removeChild(historyItem);
+        historyList.removeChild(item);
       }
     });
 
-    historyItem.appendChild(delBtn);
-    historyList.prepend(historyItem);
+    item.appendChild(delBtn);
+    historyList.prepend(item);
   };
 
-  async function loadHistoryFromRealtimeDB() {
+  const loadHistoryFromRealtimeDB = () => {
     if (!currentUser) return;
-
     const ref = db.ref(`calorieRecords/${currentUser.uid}`);
     ref.orderByChild("timestamp").limitToLast(30).once("value", snapshot => {
       const records = [];
       snapshot.forEach(child => {
         records.push({ id: child.key, ...child.val() });
       });
-
       records.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       records.forEach(record => {
         const timeStr = new Date(record.timestamp).toLocaleString();
@@ -206,7 +207,7 @@ document.addEventListener("DOMContentLoaded", () => {
         addHistoryItem(record.id, timeStr, kcalStr);
       });
     });
-  }
+  };
 
   setGoalBtn.addEventListener("click", () => {
     const newGoal = parseFloat(goalInput.value);
@@ -214,18 +215,15 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("有効なカロリー数を入力してください。");
       return;
     }
-
-    const lastSetDate = localStorage.getItem("goalSetDate");
+    const lastSet = localStorage.getItem("goalSetDate");
     const now = new Date();
-    if (lastSetDate) {
-      const diffDays = (now - new Date(lastSetDate)) / (1000 * 60 * 60 * 24);
+    if (lastSet) {
+      const diffDays = (now - new Date(lastSet)) / (1000 * 60 * 60 * 24);
       if (diffDays < 7) {
-        const remaining = Math.ceil(7 - diffDays);
-        goalStatus.textContent = `※ 目標はあと${remaining}日間変更できません。`;
+        goalStatus.textContent = `※ 目標はあと${Math.ceil(7 - diffDays)}日間変更できません。`;
         return;
       }
     }
-
     localStorage.setItem("calorieGoal", newGoal);
     localStorage.setItem("goalSetDate", now.toISOString());
     goalStatus.textContent = `目標カロリー（${newGoal} kcal）を設定しました。`;
@@ -233,15 +231,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   loginBtn.addEventListener("click", () => {
     const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(error => {
-      alert("ログイン失敗: " + error.message);
-    });
+    auth.signInWithPopup(provider).catch(e => alert("ログイン失敗: " + e.message));
   });
 
   logoutBtn.addEventListener("click", () => {
-    auth.signOut().then(() => {
-      location.reload();
-    });
+    auth.signOut().then(() => location.reload());
   });
 
   auth.onAuthStateChanged(user => {
@@ -258,8 +252,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   createEntry();
 
-  const goal = localStorage.getItem("calorieGoal");
-  if (goal) {
-    goalStatus.textContent = `現在の目標：${goal} kcal`;
+  const storedGoal = localStorage.getItem("calorieGoal");
+  if (storedGoal) {
+    goalStatus.textContent = `現在の目標：${storedGoal} kcal`;
   }
 });
