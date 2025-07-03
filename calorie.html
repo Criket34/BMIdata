@@ -4,11 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>消費カロリー記録</title>
+
+  <!-- Bootstrap -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"/>
+
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Firebase SDKs（compat版） -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script> <!-- ←★追加：Realtime Database -->
+
   <style>
     .entry-group {
       border: 1px solid #ccc;
@@ -87,6 +95,7 @@
     <ul id="history-list" class="list-group scroll-container" style="max-height: 200px;"></ul>
   </main>
 
+  <!-- あなたのJS -->
   <script src="calorie.js" defer></script>
 </body>
 </html>
