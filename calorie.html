@@ -15,7 +15,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script> <!-- ←★追加：Realtime Database -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
   <style>
     .entry-group {
@@ -57,6 +57,7 @@
   <nav class="navbar navbar-dark bg-dark">
     <div class="container">
       <a href="#" class="navbar-brand">消費カロリー記録</a>
+      <button id="logoutBtn" class="btn btn-outline-light">ログアウト</button>
     </div>
   </nav>
 
@@ -64,8 +65,8 @@
     <div class="flex-container">
       <div class="left-panel">
         <div class="form-group">
-          <label for="user-weight">あなたの体重（kg）</label>
-          <input type="number" id="user-weight" class="form-control" placeholder="例：60" />
+          <label for="weight">あなたの体重（kg）</label>
+          <input type="number" id="weight" class="form-control" placeholder="例：60" />
         </div>
         <div class="form-group">
           <label for="calorie-goal">目標消費カロリー（kcal）</label>
@@ -82,20 +83,37 @@
 
     <hr/>
 
-    <div id="entries" class="scroll-container mb-3"></div>
+    <!-- 運動入力欄 -->
+    <div class="entry-group">
+      <div class="form-group">
+        <label for="category">運動カテゴリー</label>
+        <select id="category" class="form-control">
+          <option value="">選択してください</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="exercise">運動名</label>
+        <select id="exercise" class="form-control">
+          <option value="">選択してください</option>
+        </select>
+      </div>
+      <div id="exerciseInfo" class="text-info font-weight-bold mb-2"></div>
 
-    <div class="mb-3">
-      <button id="add-entry-btn" class="btn btn-outline-primary">＋ 項目を追加</button>
-      <button id="calculate-btn" class="btn btn-success">消費カロリーを計算</button>
+      <div class="form-group">
+        <label for="duration">運動時間（分）</label>
+        <input type="number" id="duration" class="form-control" placeholder="例：30" />
+      </div>
+      <button id="recordBtn" class="btn btn-primary">記録</button>
     </div>
 
+    <!-- 結果 -->
     <div id="result" class="alert alert-info" style="display:none;"></div>
 
+    <!-- 履歴 -->
     <h5 class="mt-4">履歴</h5>
-    <ul id="history-list" class="list-group scroll-container" style="max-height: 200px;"></ul>
+    <ul id="historyList" class="list-group scroll-container" style="max-height: 200px;"></ul>
   </main>
 
-  <!-- あなたのJS -->
-  <script src="calorie.js" defer></script>
+  <script src="calorie.js" type="module" defer></script>
 </body>
 </html>
