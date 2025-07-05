@@ -4,89 +4,130 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>消費カロリー記録</title>
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap">
   <style>
-    .entry-group {
-      border: 1px solid #ccc;
-      padding: 10px;
-      margin-bottom: 10px;
-      border-radius: 5px;
-      background-color: #f9f9f9;
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
     }
-    .flex-container {
+    header {
+      background-color: #3f51b5;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.4rem;
+    }
+    .container {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
+      height: calc(100vh - 64px); /* ヘッダー高さを除外 */
     }
-    .left-panel, .right-panel {
+    .input-section, .history-section {
       flex: 1;
-      min-width: 300px;
-      margin: 10px;
-    }
-    .scroll-container {
-      max-height: 300px;
+      padding: 1rem;
       overflow-y: auto;
-      padding-right: 10px;
+      box-sizing: border-box;
     }
-    #entries.scroll-container {
-      min-height: 200px;
+    .input-section {
+      background-color: #ffffff;
+      border-right: 1px solid #ddd;
     }
-    #comparisonChart {
-      max-width: 100%;
+    .history-section {
+      background-color: #fafafa;
     }
-    .kcal-result {
-      font-weight: bold;
-      color: #007bff;
-      margin-top: 5px;
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+    select, input[type="number"], input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 15px;
+      font-size: 1rem;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .record-item {
+      padding: 10px;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      margin-bottom: 10px;
+    }
+    .record-item button {
+      background-color: #f44336;
+      margin-top: 8px;
+    }
+    .record-item button:hover {
+      background-color: #d32f2f;
+    }
+    .undo-button {
+      background-color: #2196F3;
+      margin-left: 10px;
+    }
+    .undo-button:hover {
+      background-color: #1976D2;
+    }
+    .goal-section {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #e3f2fd;
+      border: 1px solid #90caf9;
     }
   </style>
 </head>
 <body>
-  <nav class="navbar navbar-dark bg-dark">
-    <div class="container">
-      <a href="#" class="navbar-brand">消費カロリー記録</a>
-    </div>
-  </nav>
+  <header>消費カロリー記録</header>
 
-  <main class="container mt-4">
-    <div class="flex-container">
-      <div class="left-panel">
-        <div class="form-group">
-          <label for="user-weight">あなたの体重（kg）</label>
-          <input type="number" id="user-weight" class="form-control" placeholder="例：60" />
-        </div>
-        <div class="form-group">
-          <label for="calorie-goal">目標消費カロリー（kcal）</label>
-          <input type="number" id="calorie-goal" class="form-control" placeholder="週に1回のみ設定可能"/>
-          <button id="set-goal-btn" class="btn btn-outline-secondary mt-2">目標を設定</button>
-          <div id="goal-status" class="mt-2 text-muted"></div>
-        </div>
+  <div class="container">
+    <!-- 入力エリア -->
+    <div class="input-section">
+      <label for="category">運動カテゴリー</label>
+      <select id="category"></select>
+
+      <label for="exercise">運動名</label>
+      <select id="exercise"></select>
+
+      <label for="duration">運動時間（分）</label>
+      <input type="number" id="duration" min="1" />
+
+      <label for="weight">体重（kg）</label>
+      <input type="number" id="weight" min="1" />
+
+      <button id="recordButton">記録する</button>
+
+      <div class="goal-section">
+        <label for="goal">1日の消費カロリー目標（kcal）</label>
+        <input type="number" id="goal" min="1" />
+        <button id="setGoalButton">目標を設定</button>
+        <p id="goalInfo"></p>
+        <canvas id="goalChart" width="400" height="300"></canvas>
       </div>
-
-      <div class="right-panel">
-        <canvas id="comparisonChart" height="200" style="display:none;"></canvas>
-      </div>
     </div>
 
-    <hr/>
-
-    <div id="entries" class="scroll-container mb-3"></div>
-
-    <div class="mb-3">
-      <button id="add-entry-btn" class="btn btn-outline-primary">＋ 項目を追加</button>
-      <button id="calculate-btn" class="btn btn-success">消費カロリーを計算</button>
+    <!-- 履歴エリア -->
+    <div class="history-section">
+      <h3>記録履歴</h3>
+      <div id="recordsContainer"></div>
     </div>
+  </div>
 
-    <div id="result" class="alert alert-info" style="display:none;"></div>
-
-    <h5 class="mt-4">履歴</h5>
-    <ul id="history-list" class="list-group scroll-container" style="max-height: 200px;"></ul>
-  </main>
-
-  <script src="calorie.js" defer></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <!-- Chart.js（目標グラフ用） -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- ローカルJS -->
+  <script src="calorie.js"></script>
 </body>
 </html>
