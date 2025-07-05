@@ -1,12 +1,12 @@
 // Firebase初期化
 const firebaseConfig = {
   apiKey: "AIzaSyAqrTNSA-E-fq_63oS3cNjgeC7WYr3l-bQ",
-  authDomain: "bmi-app-4f43e.firebaseapp.com",
-  projectId: "bmi-app-4f43e",
-  storageBucket: "bmi-app-4f43e.appspot.com",
-  messagingSenderId: "456396663253",
-  appId: "1:456396663253:web:07a2e25f65d429bc656e44",
-  databaseURL: "https://bmi-app-4f43e-default-rtdb.firebaseio.com"
+  authDomain: "bmi-app-a99f3.firebaseapp.com",
+  databaseURL: "https://bmi-app-a99f3-default-rtdb.firebaseio.com",
+  projectId: "bmi-app-a99f3",
+  storageBucket: "bmi-app-a99f3.appspot.com",
+  messagingSenderId: "1018688729509",
+  appId: "1:1018688729509:web:ea3d2e1f71741e8cb80549"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
