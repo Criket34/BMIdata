@@ -8,7 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
     .entry-group {
       border: 1px solid #ccc;
@@ -85,6 +85,11 @@
 
     <h5 class="mt-4">履歴</h5>
     <ul id="history-list" class="list-group scroll-container" style="max-height: 200px;"></ul>
+
+    <div class="mt-4">
+      <button id="login-btn" class="btn btn-outline-primary">Googleでログイン</button>
+      <button id="logout-btn" class="btn btn-outline-secondary" style="display:none;">ログアウト</button>
+    </div>
   </main>
 
   <script src="calorie.js" defer></script>
