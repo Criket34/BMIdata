@@ -1,7 +1,15 @@
-// Firebase 初期化（設定は自分のプロジェクトに合わせて調整）
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getDatabase, ref, push, onValue, remove, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getDatabase,
+  ref,
+  push,
+  onValue,
+  remove
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import {
+  getAuth,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAqrTNSA-E-fq_63oS3cNjgeC7WYr3l-bQ",
@@ -9,169 +17,171 @@ const firebaseConfig = {
   databaseURL: "https://bmi-app-a99f3-default-rtdb.firebaseio.com",
   projectId: "bmi-app-a99f3",
   storageBucket: "bmi-app-a99f3.appspot.com",
-  messagingSenderId: "1067116934038",
-  appId: "1:1067116934038:web:dc18293f708f30a7f0536a"
+  messagingSenderId: "147791535337",
+  appId: "1:147791535337:web:9cb5cbfcddf72efb3c6aef"
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth();
 const db = getDatabase(app);
+const auth = getAuth(app);
 
-let currentUid = null;
-let deletedEntry = null;
+let currentUser;
+let undoStack = [];
 
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth, (user) => {
   if (user) {
-    currentUid = user.uid;
+    currentUser = user;
     loadHistory();
   } else {
-    alert("ログインしてください。");
+    alert("ログインが必要です。");
   }
 });
 
-document.getElementById("recordBtn").addEventListener("click", () => {
-  const sleepTime = document.getElementById("sleepTime").value;
-  const wakeTime = document.getElementById("wakeTime").value;
-  const quality = parseInt(document.querySelector('input[name="quality"]:checked')?.value || 0);
-  const isWeekend = document.getElementById("isWeekend").checked;
-
-  if (!sleepTime || !wakeTime || quality === 0) {
-    alert("全ての項目を入力してください。");
-    return;
-  }
-
-  const date = new Date().toISOString().split("T")[0];
-  const sleepDate = new Date(`${date}T${sleepTime}`);
-  const wakeDate = new Date(`${date}T${wakeTime}`);
-  if (wakeDate <= sleepDate) wakeDate.setDate(wakeDate.getDate() + 1);
-
-  const diffMs = wakeDate - sleepDate;
-  const sleepMinutes = Math.round(diffMs / (1000 * 60));
-  const chronotype = getChronotype(sleepTime, wakeTime);
-  const comment = generateComment(sleepMinutes);
-
-  document.getElementById("result").innerHTML = `
-    <p>睡眠時間: ${sleepMinutes} 分</p>
-    <p>クロノタイプ: ${chronotype}</p>
-    <p>コメント: ${comment}</p>
-  `;
-
-  const record = {
-    date,
-    sleepTime,
-    wakeTime,
-    sleepMinutes,
-    quality,
-    isWeekend,
-    chronotype,
-    comment,
-    timestamp: Date.now()
-  };
-
-  const userRef = ref(db, `sleep_history/${currentUid}`);
-  push(userRef, record);
-});
-
-function getChronotype(sleep, wake) {
-  const [sH, sM] = sleep.split(":").map(Number);
-  const [wH, wM] = wake.split(":").map(Number);
-  const sleepTotal = sH * 60 + sM;
-  const wakeTotal = wH * 60 + wM;
-  const midpoint = ((wakeTotal < sleepTotal ? wakeTotal + 1440 : wakeTotal) + sleepTotal) / 2 % 1440;
-
-  if (midpoint < 270) return "超朝型";
-  if (midpoint < 330) return "朝型";
-  if (midpoint < 390) return "中間型";
-  if (midpoint < 450) return "夜型";
-  return "超夜型";
+function getChronotype(hour) {
+  if (hour >= 5 && hour < 8) return "朝型";
+  if (hour >= 8 && hour < 11) return "やや朝型";
+  if (hour >= 11 && hour < 14) return "やや夜型";
+  return "夜型";
 }
 
-function generateComment(min) {
-  if (min < 360) return "睡眠時間が短いです。";
-  if (min < 420) return "やや短い睡眠です。";
-  if (min < 540) return "十分な睡眠がとれています。";
-  return "寝すぎかもしれません。";
+function getComment(tst) {
+  if (tst >= 420) return "十分な睡眠がとれています。";
+  if (tst >= 360) return "まあまあの睡眠時間です。";
+  if (tst >= 300) return "少し睡眠不足気味です。";
+  return "睡眠時間がかなり短いです。";
+}
+
+function parseTimeToMinutes(time) {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function formatDate(date) {
+  return date.toISOString().split("T")[0];
 }
 
 function loadHistory() {
-  const userRef = ref(db, `sleep_history/${currentUid}`);
-  onValue(userRef, snapshot => {
-    const historyArea = document.getElementById("history");
-    historyArea.innerHTML = "";
+  const historyRef = ref(db, `sleep_history/${currentUser.uid}`);
+  onValue(historyRef, (snapshot) => {
+    const historyList = document.getElementById("history-list");
+    historyList.innerHTML = "";
     const records = [];
 
-    snapshot.forEach(child => {
-      records.push({ key: child.key, ...child.val() });
+    snapshot.forEach((childSnapshot) => {
+      records.push({ key: childSnapshot.key, ...childSnapshot.val() });
     });
 
-    records.sort((a, b) => b.timestamp - a.timestamp);
-    const recent = records.slice(0, 30);
-
-    const chronoCounts = {};
-    recent.forEach(r => {
-      const type = r.chronotype;
-      chronoCounts[type] = (chronoCounts[type] || 0) + 1;
-    });
-
-    const mostCommon = Object.entries(chronoCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "データ不足";
-
-    recent.forEach(r => {
-      const div = document.createElement("div");
-      div.innerHTML = `
-        <p>${r.date} - 睡眠時間: ${r.sleepMinutes}分 / クロノタイプ: ${r.chronotype}</p>
-        <button onclick="deleteRecord('${r.key}')">削除</button>
+    records.reverse().slice(0, 30).forEach((record) => {
+      const li = document.createElement("li");
+      li.innerHTML = `
+        ${record.date} - クロノタイプ: ${record.chronotype}, 睡眠時間: ${record.sleepDuration}分, 睡眠の質: ${record.sleepQuality}
+        <button data-key="${record.key}">削除</button>
       `;
-      historyArea.appendChild(div);
+      historyList.appendChild(li);
+
+      li.querySelector("button").addEventListener("click", () => {
+        undoStack.push(record);
+        remove(ref(db, `sleep_history/${currentUser.uid}/${record.key}`));
+        loadHistory();
+      });
     });
 
-    document.getElementById("commonChronotype").textContent = `直近30件の最頻クロノタイプ：${mostCommon}`;
+    // クロノタイプ統計
+    const typeCounts = {};
+    records.slice(0, 30).forEach((r) => {
+      typeCounts[r.chronotype] = (typeCounts[r.chronotype] || 0) + 1;
+    });
+
+    const mostCommonType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
+    document.getElementById("most-common-chronotype").textContent = mostCommonType
+      ? `最も多いクロノタイプ：${mostCommonType[0]}（${mostCommonType[1]}回）`
+      : "クロノタイプの統計はまだありません。";
   });
 }
 
-window.deleteRecord = function (key) {
-  const refPath = ref(db, `sleep_history/${currentUid}/${key}`);
-  onValue(refPath, snapshot => {
-    deletedEntry = snapshot.val();
-    deletedEntry._key = key;
-  }, { onlyOnce: true });
+document.getElementById("record-button").addEventListener("click", () => {
+  const sleepTime = document.getElementById("sleep-time").value;
+  const wakeTime = document.getElementById("wake-time").value;
+  const sleepQuality = document.querySelector("input[name='quality']:checked")?.value;
+  const isWeekend = document.getElementById("weekend").checked;
+  const userId = document.getElementById("user-id").value || "unknown";
 
-  remove(refPath);
-};
-
-document.getElementById("undoBtn").addEventListener("click", () => {
-  if (deletedEntry) {
-    const { _key, ...rest } = deletedEntry;
-    set(ref(db, `sleep_history/${currentUid}/${_key}`), rest);
-    deletedEntry = null;
-  } else {
-    alert("Undoできる削除履歴がありません。");
+  if (!sleepTime || !wakeTime || !sleepQuality) {
+    alert("すべての項目を入力してください。");
+    return;
   }
+
+  const sleepMinutes = parseTimeToMinutes(sleepTime);
+  const wakeMinutes = parseTimeToMinutes(wakeTime);
+  let duration = wakeMinutes - sleepMinutes;
+  if (duration <= 0) duration += 1440;
+
+  const date = formatDate(new Date());
+  const chronotype = getChronotype(parseTimeToMinutes(wakeTime) / 60);
+  const comment = getComment(duration);
+
+  const record = {
+    userId,
+    date,
+    sleepTime,
+    wakeTime,
+    sleepDuration: duration,
+    chronotype,
+    comment,
+    sleepQuality,
+    isWeekend: isWeekend ? "休日" : "平日"
+  };
+
+  push(ref(db, `sleep_history/${currentUser.uid}`), record);
+  localStorage.setItem("userId", userId);
+
+  document.getElementById("result").innerHTML = `
+    クロノタイプ：${chronotype}<br>
+    睡眠時間：${duration}分<br>
+    コメント：${comment}
+  `;
 });
 
-document.getElementById("downloadCSV").addEventListener("click", () => {
-  const userRef = ref(db, `sleep_history/${currentUid}`);
-  onValue(userRef, snapshot => {
-    const records = [];
-    snapshot.forEach(child => {
-      records.push(child.val());
+document.getElementById("undo-button").addEventListener("click", () => {
+  if (undoStack.length === 0) {
+    alert("取り消す履歴がありません。");
+    return;
+  }
+
+  const lastDeleted = undoStack.pop();
+  push(ref(db, `sleep_history/${currentUser.uid}`), lastDeleted);
+});
+
+document.getElementById("download-csv").addEventListener("click", () => {
+  const historyRef = ref(db, `sleep_history/${currentUser.uid}`);
+  onValue(historyRef, (snapshot) => {
+    const rows = [["ID", "Date", "SleepTime", "WakeTime", "TST(min)", "SleepQuality", "IsWeekend"]];
+    snapshot.forEach((child) => {
+      const v = child.val();
+      rows.push([
+        v.userId || "",
+        v.date,
+        v.sleepTime,
+        v.wakeTime,
+        v.sleepDuration,
+        v.sleepQuality,
+        v.isWeekend
+      ]);
     });
 
-    const headers = ["ID", "Date", "SleepTime", "WakeTime", "TST(min)", "SleepQuality", "IsWeekend"];
-    const rows = records.map(r => [
-      currentUid,
-      r.date,
-      r.sleepTime,
-      r.wakeTime,
-      r.sleepMinutes,
-      r.quality,
-      r.isWeekend ? "週末" : "平日"
-    ]);
-
-    const csv = [headers, ...rows].map(row => row.join(",")).join("\n");
+    const csv = rows.map((r) => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "sleep_history.csv";
-    a.click();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "sleep_records.csv";
+    link.click();
   }, { onlyOnce: true });
+});
+
+// ページ読み込み時にIDを復元
+window.addEventListener("load", () => {
+  const storedId = localStorage.getItem("userId");
+  if (storedId) {
+    document.getElementById("user-id").value = storedId;
+  }
 });

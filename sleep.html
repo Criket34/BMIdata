@@ -78,7 +78,7 @@
               <label class="form-check-label" for="q4">4</label>
             </div>
           </div>
-          <button id="recordBtn" class="btn btn-primary btn-block">記録する</button>
+          <button id="record-button" class="btn btn-primary btn-block">記録する</button>
 
           <div id="result" class="alert alert-info mt-3">
             <div id="sleep-result" class="font-weight-bold"></div>
@@ -89,29 +89,29 @@
         <!-- 履歴表示 -->
         <section class="col-md-6 mb-4">
           <h5>過去の記録</h5>
-          <div id="history" class="mb-3"></div>
+          <ul id="history-list" class="list-group mb-3"></ul>
           <div class="alert alert-warning" id="undo-box">
             <span>直前の削除を元に戻せます。</span>
-            <button id="undoBtn" class="btn btn-sm btn-outline-dark ml-2">元に戻す</button>
+            <button id="undo-button" class="btn btn-sm btn-outline-dark ml-2">元に戻す</button>
           </div>
-          <p id="commonChronotype" class="mt-3 font-weight-bold text-primary"></p>
+          <p id="most-common-chronotype" class="mt-3 font-weight-bold text-primary"></p>
         </section>
       </div>
 
       <hr />
       <section class="mt-4">
         <h5>エクスポート</h5>
-        <button id="downloadCSV" class="btn btn-success">CSVをダウンロード</button>
+        <button id="download-csv" class="btn btn-success">CSVをダウンロード</button>
       </section>
     </div>
   </main>
 
   <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
-  <!-- sleep.js（最新JSに対応） -->
+  <!-- sleep.js（完全版JS） -->
   <script type="module" src="sleep.js"></script>
 </body>
 </html>
