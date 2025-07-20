@@ -92,7 +92,7 @@ document.getElementById("record-button").addEventListener("click", () => {
   const wakeTime = document.getElementById("wakeTime").value;
   const sleepQuality = document.querySelector("input[name='quality']:checked")?.value;
   const isWeekend = document.getElementById("isWeekend").checked;
-  const userId = document.getElementById("user-id").value || "unknown";
+  const userId = document.getElementById("user-id").value.trim() || "unknown";
 
   if (!sleepTime || !wakeTime || !sleepQuality) {
     alert("すべての項目を入力してください。");
@@ -156,5 +156,7 @@ document.getElementById("download-csv").addEventListener("click", () => {
 
 window.addEventListener("load", () => {
   const storedId = localStorage.getItem("userId");
-  if (storedId) document.getElementById("user-id").value = storedId;
+  if (storedId) {
+    document.getElementById("user-id").value = storedId;
+  }
 });
