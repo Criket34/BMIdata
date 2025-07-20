@@ -93,6 +93,7 @@ document.getElementById("record-button").addEventListener("click", () => {
   const sleepQuality = document.querySelector("input[name='quality']:checked")?.value;
   const isWeekend = document.getElementById("isWeekend").checked;
   const userId = document.getElementById("user-id").value.trim() || "unknown";
+  const customDateInput = document.getElementById("customDate").value;
 
   if (!sleepTime || !wakeTime || !sleepQuality) {
     alert("すべての項目を入力してください。");
@@ -104,7 +105,7 @@ document.getElementById("record-button").addEventListener("click", () => {
   let duration = wakeMin - sleepMin;
   if (duration <= 0) duration += 1440;
 
-  const date = formatDate(new Date());
+  const date = customDateInput || formatDate(new Date());
   const chronotype = getChronotype(wakeMin / 60);
   const comment = getComment(duration);
 
