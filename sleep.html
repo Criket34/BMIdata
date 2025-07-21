@@ -48,7 +48,7 @@
             <input type="text" id="user-id" class="form-control" placeholder="IDを入力">
           </div>
 
-          <!-- 日付入力を追加 -->
+          <!-- 記録日付の追加 -->
           <div class="form-group">
             <label for="record-date">記録日付（任意）</label>
             <input type="date" id="record-date" class="form-control">
@@ -67,6 +67,8 @@
             <input type="checkbox" id="isWeekend" class="form-check-input">
             <label for="isWeekend" class="form-check-label">休日の記録です</label>
           </div>
+
+          <!-- 睡眠の質 ラジオボタン -->
           <div class="form-group">
             <label>睡眠の質（1〜4）<br>
               <small class="text-muted">(1: 悪い、2: やや悪い、3: やや良い、4: 良い)</small>
@@ -88,6 +90,7 @@
               <label class="form-check-label" for="q4">4</label>
             </div>
           </div>
+
           <button id="record-button" class="btn btn-primary btn-block">記録する</button>
 
           <div id="result" class="alert alert-info mt-3">
