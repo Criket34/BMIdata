@@ -2,13 +2,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// Firebase設定
+// Firebase設定（完全な構成）
 const firebaseConfig = {
-  databaseURL: "https://bmi-app-a99f3-default-rtdb.firebaseio.com",
+  apiKey: "AIzaSyAqrTNSA-E-fq_63oS3cNjgeC7WYr3l-bQ",
+  authDomain: "bmi-app-a99f3.firebaseapp.com",
+  databaseURL: "https://bmi-app-a99f3-default-rtdb.firebaseio.com"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const auth = getAuth();
+const auth = getAuth(app);
 
 let currentUID = null;
 let undoData = null;
@@ -32,31 +35,27 @@ userIdInput.addEventListener("input", () => {
 document.getElementById("record-button").addEventListener("click", () => {
   const sleepTime = document.getElementById("sleepTime").value;
   const wakeTime = document.getElementById("wakeTime").value;
-  const userId = userIdInput.value || "unknown";
-
+  const recordDate = document.getElementById("record-date").value;
+  const date = recordDate || new Date().toISOString().split("T")[0];
   const qualityRadio = document.querySelector('input[name="quality"]:checked');
-  if (!qualityRadio) {
-    alert("睡眠の質を選択してください。");
-    return;
-  }
-  const quality = qualityRadio.value;
-
-  const isWeekend = document.getElementById("isWeekend").checked;
-
-  const dateInput = document.getElementById("record-date").value;
-  const date = dateInput || new Date().toISOString().split("T")[0];
 
   if (!sleepTime || !wakeTime) {
     alert("就寝時刻と起床時刻を入力してください");
     return;
   }
+  if (!qualityRadio) {
+    alert("睡眠の質を選択してください。");
+    return;
+  }
+
+  const quality = qualityRadio.value;
+  const isWeekend = document.getElementById("isWeekend").checked;
+  const userId = userIdInput.value || "unknown";
 
   const sleepDate = new Date(`${date}T${sleepTime}`);
   const wakeDate = new Date(`${date}T${wakeTime}`);
   if (wakeDate <= sleepDate) wakeDate.setDate(wakeDate.getDate() + 1);
-
   const durationMin = Math.round((wakeDate - sleepDate) / 60000);
-
   const chronotype = getChronotype(sleepDate);
   const comment = generateComment(durationMin, quality);
   displayResult(durationMin, chronotype, comment);
@@ -78,7 +77,6 @@ document.getElementById("record-button").addEventListener("click", () => {
   push(historyRef, data);
 });
 
-// クロノタイプ判定
 function getChronotype(sleepDate) {
   const hour = sleepDate.getHours();
   if (hour >= 5 && hour < 8) return "朝型";
@@ -88,22 +86,19 @@ function getChronotype(sleepDate) {
   return "夜型";
 }
 
-// コメント生成
 function generateComment(duration, quality) {
-  const q = parseInt(quality, 10);
+  const q = parseInt(quality);
   if (duration < 240 || q <= 1) return "睡眠が不足しています。早めの就寝を心がけましょう。";
   if (duration >= 480 && q >= 3) return "質の良い睡眠が取れています。";
   return "睡眠の改善余地があります。";
 }
 
-// 結果表示
 function displayResult(duration, chronotype, comment) {
   document.getElementById("sleep-result").textContent = `睡眠時間: ${duration}分 / クロノタイプ: ${chronotype}`;
   document.getElementById("sleep-comment").textContent = comment;
   document.getElementById("result").style.display = "block";
 }
 
-// 履歴読み込み
 function loadHistory() {
   const historyRef = ref(db, `sleep_history/${currentUID}`);
   onValue(historyRef, (snapshot) => {
@@ -140,7 +135,6 @@ function loadHistory() {
   });
 }
 
-// クロノタイプ統計
 function updateMostCommonChronotype(entries) {
   const counts = {};
   for (const e of entries) {
@@ -151,7 +145,6 @@ function updateMostCommonChronotype(entries) {
   label.textContent = most ? `最も多いクロノタイプ: ${most[0]}` : "";
 }
 
-// 元に戻す
 document.getElementById("undo-button").addEventListener("click", () => {
   if (!undoData || !currentUID) return;
   const refPath = ref(db, `sleep_history/${currentUID}`);
@@ -161,7 +154,6 @@ document.getElementById("undo-button").addEventListener("click", () => {
   document.getElementById("undo-box").classList.add("d-none");
 });
 
-// CSV出力
 document.getElementById("download-csv").addEventListener("click", () => {
   const list = document.querySelectorAll("#history-list .list-group-item");
   if (!list.length) return;
