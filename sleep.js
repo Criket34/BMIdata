@@ -35,7 +35,7 @@ userIdInput.addEventListener("input", () => {
 document.getElementById("record-button").addEventListener("click", () => {
   const sleepTime = document.getElementById("sleepTime").value;
   const wakeTime = document.getElementById("wakeTime").value;
-  const recordDate = document.getElementById("record-date").value;
+  const recordDate = document.getElementById("record-date")?.value;
   const date = recordDate || new Date().toISOString().split("T")[0];
   const qualityRadio = document.querySelector('input[name="quality"]:checked');
 
@@ -108,8 +108,13 @@ function loadHistory() {
     if (!data) return;
 
     const entries = Object.entries(data)
-      .map(([key, value]) => ({ key, ...value }))
-      .sort((a, b) => b.timestamp - a.timestamp)
+      .map(([key, value]) => ({
+        key,
+        ...value,
+        dateObj: new Date(value.date)
+      }))
+      // 日付の新しい順に並べ替え
+      .sort((a, b) => b.dateObj - a.dateObj || b.timestamp - a.timestamp)
       .slice(0, 30);
 
     for (const entry of entries) {
