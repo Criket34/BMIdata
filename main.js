@@ -1,4 +1,6 @@
-// Firebase 初期化
+// main.js
+
+// Firebase 初期化（Realtime Database を使用）
 const firebaseConfig = {
   apiKey: "AIzaSyAqrTNSA-E-fq_63oS3cNjgeC7WYr3l-bQ",
   authDomain: "bmi-app-a99f3.firebaseapp.com",
@@ -24,23 +26,25 @@ const messageOutput = document.getElementById('message');
 const bmiHistoryList = document.getElementById('bmi-history');
 
 // 入力欄切り替え
-heightButton.addEventListener('click', () => {
+heightButton && heightButton.addEventListener('click', () => {
   activeInput = heightInput;
   heightInput.classList.add('border-primary');
   weightInput.classList.remove('border-primary');
+  heightInput.focus();
 });
 
-weightButton.addEventListener('click', () => {
+weightButton && weightButton.addEventListener('click', () => {
   activeInput = weightInput;
   weightInput.classList.add('border-primary');
   heightInput.classList.remove('border-primary');
+  weightInput.focus();
 });
 
-// テンキー入力処理
+// テンキー入力処理（主にモバイル）
 keypadButtons.forEach(btn => {
   btn.addEventListener('click', () => {
     if (!activeInput) return;
-    const val = btn.textContent;
+    const val = btn.textContent.trim();
     if (val === '⌫') {
       activeInput.value = activeInput.value.slice(0, -1);
     } else {
@@ -51,6 +55,7 @@ keypadButtons.forEach(btn => {
 
 // 全角→半角変換
 function toHalfWidth(str) {
+  if (!str) return str;
   return str.replace(/[！-～]/g, tmpStr =>
     String.fromCharCode(tmpStr.charCodeAt(0) - 0xFEE0)
   ).replace(/　/g, " ");
@@ -60,6 +65,7 @@ function toHalfWidth(str) {
 document.getElementById('button-submit').addEventListener('click', async () => {
   const height = parseFloat(toHalfWidth(heightInput.value));
   const weight = parseFloat(toHalfWidth(weightInput.value));
+  const recordDate = document.getElementById("record-date").value; // YYYY-MM-DD or empty
 
   if (isNaN(height) || isNaN(weight) || height <= 0 || weight <= 0) {
     bmiOutput.textContent = '';
@@ -73,11 +79,12 @@ document.getElementById('button-submit').addEventListener('click', async () => {
   bmiOutput.textContent = bmi;
 
   let message = '';
-  if (bmi < 18.5) {
+  const bmiNum = parseFloat(bmi);
+  if (bmiNum < 18.5) {
     message = '低体重です。';
-  } else if (bmi < 25) {
+  } else if (bmiNum < 25) {
     message = '普通体重です。';
-  } else if (bmi < 30) {
+  } else if (bmiNum < 30) {
     message = '肥満（1度）です。';
   } else {
     message = '高度肥満です。';
@@ -86,31 +93,41 @@ document.getElementById('button-submit').addEventListener('click', async () => {
 
   const user = auth.currentUser;
   if (user) {
-    const timestamp = new Date().toISOString();
+    // 日付は YYYY-MM-DD のみ（未指定なら今日）
+    const date = recordDate || new Date().toISOString().split("T")[0];
 
     // 保存1：従来の履歴（bmi_history）
     const ref1 = db.ref(`bmi_history/${user.uid}`);
     const entry1 = {
-      date: timestamp,
+      date: date,
       value: bmi
     };
 
     // 保存2：グラフ用履歴（users/UID/history）
     const ref2 = db.ref(`users/${user.uid}/history`);
     const entry2 = {
-      date: timestamp,
+      date: date,
       height: height,
       weight: weight,
       bmi: bmi
     };
 
-    // 並行して保存
-    await Promise.all([
-      ref1.push(entry1),
-      ref2.push(entry2)
-    ]);
-
-    displayHistory();
+    try {
+      // 並行して保存
+      await Promise.all([
+        ref1.push(entry1),
+        ref2.push(entry2)
+      ]);
+      // 保存後は履歴表示更新
+      displayHistory();
+    } catch (err) {
+      console.error("保存エラー:", err);
+      errorMessage.textContent = "保存に失敗しました。リトライしてください。";
+    }
+  } else {
+    // 認証されていない場合の振る舞い（元コードに合わせて遷移）
+    alert('ログイン情報が無効です。ログインページに戻ります。');
+    window.location.href = 'index.html';
   }
 });
 
@@ -118,12 +135,13 @@ document.getElementById('button-submit').addEventListener('click', async () => {
 document.getElementById('button-reset').addEventListener('click', () => {
   heightInput.value = '';
   weightInput.value = '';
+  document.getElementById('record-date').value = '';
   bmiOutput.textContent = '';
   messageOutput.textContent = '';
   errorMessage.textContent = '';
 });
 
-// 履歴の表示
+// 履歴の表示（新しい順にソート）
 function displayHistory() {
   const user = auth.currentUser;
   if (!user) return;
@@ -131,25 +149,41 @@ function displayHistory() {
   const ref = db.ref(`bmi_history/${user.uid}`);
   ref.once('value').then(snapshot => {
     const data = snapshot.val();
-    const history = data ? Object.values(data) : [];
+    // data は { key: {date, value}, ... }
+    const history = data ? Object.values(data).map(item => ({
+      date: item.date,
+      value: item.value
+    })) : [];
 
-    history.sort((a, b) => new Date(b.date) - new Date(a.date));
+    // date は "YYYY-MM-DD" 形式（あるいは ISO 時刻文字列が混在する場合を考慮）
+    history.sort((a, b) => {
+      const da = new Date(a.date).getTime();
+      const dbt = new Date(b.date).getTime();
+      return dbt - da;
+    });
+
     const recent = history.slice(0, 30);
-
     bmiHistoryList.innerHTML = '';
     recent.forEach(entry => {
+      // 表示は基本 YYYY-MM-DD（もし ISO 時刻が入っていればローカル表示に切替）
+      const dateStr = (typeof entry.date === 'string' && entry.date.includes('T'))
+        ? new Date(entry.date).toLocaleString()
+        : entry.date;
       const li = document.createElement('li');
       li.className = 'list-group-item';
-      const date = new Date(entry.date).toLocaleString();
-      li.textContent = `${date} - ${entry.value}`;
+      li.textContent = `${dateStr} - ${entry.value}`;
       bmiHistoryList.appendChild(li);
     });
+  }).catch(err => {
+    console.error("履歴取得エラー:", err);
   });
 }
 
 // 認証確認して履歴読み込み + グラフボタン処理
 auth.onAuthStateChanged(user => {
   if (!user) {
+    // 元の実装では未ログインなら index.html に戻す挙動でした。
+    // アプリの方針で匿名ログインを使いたい場合はここで signInAnonymously(auth) を呼ぶ実装に変更できます。
     alert('ログイン情報が無効です。ログインページに戻ります。');
     window.location.href = 'index.html';
   } else {
