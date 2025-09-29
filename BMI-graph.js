@@ -41,7 +41,7 @@ auth.onAuthStateChanged(user => {
 
       Object.values(data).forEach(entry => {
         if (entry.bmi && entry.date) {
-          const dateStr = new Date(entry.date).toLocaleDateString(); // YYYY/MM/DD 表示
+          const dateStr = new Date(entry.date).toLocaleDateString();
           dates.push(dateStr);
           bmiValues.push(parseFloat(entry.bmi));
           weights.push(entry.weight || "不明");
@@ -61,8 +61,7 @@ auth.onAuthStateChanged(user => {
             borderColor: 'rgba(75, 192, 192, 1)',
             backgroundColor: 'rgba(75, 192, 192, 0.2)',
             borderWidth: 2,
-            tension: 0,          // 線を直線化
-            stepped: true,       // ✅ ステップ（直角折れ線）
+            tension: 0,        // ✅ 曲線を無効化
             pointRadius: 4,
             pointHoverRadius: 6
           }]
