@@ -69,8 +69,11 @@
             <small class="form-text text-muted">未選択の場合は今日の日付で保存されます。</small>
           </div>
 
+          <!-- ボタン類 -->
           <input id="button-submit" type="submit" class="btn btn-primary btn-large mr-2" value="計測開始">
           <button id="button-reset" type="button" class="btn btn-secondary btn-large mt-2">リセット</button>
+          <!-- ✅ グラフで見るボタンをここへ移動 -->
+          <a href="#" id="view-graph-btn" class="btn btn-success btn-block mt-3">グラフで見る</a>
 
           <!-- スマホ専用 -->
           <div class="mt-3 d-block d-md-none">
@@ -110,8 +113,7 @@
           <div class="mt-4">
             <h5>過去のBMI履歴</h5>
             <ul id="bmi-history" class="list-group"></ul>
-
-            <a href="#" id="view-graph-btn" class="btn btn-success btn-block mt-3">グラフで見る</a>
+            <!-- 旧位置のグラフボタンは削除済み -->
           </div>
         </section>
       </div>
@@ -127,3 +129,5 @@
   <script src="main.js"></script>
 </body>
 </html>
+
+
