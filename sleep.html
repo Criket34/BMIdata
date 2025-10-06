@@ -90,7 +90,15 @@
             </div>
           </div>
 
-          <button id="record-button" class="btn btn-primary btn-block">記録する</button>
+          <!-- 記録ボタン -->
+          <button id="record-button" class="btn btn-primary btn-block mb-3">記録する</button>
+
+          <!-- ▼ ここに移動：CSV・グラフボタン -->
+          <div class="text-center mb-3">
+            <button id="download-csv" class="btn btn-success mr-2">CSVをダウンロード</button>
+            <a href="sleep-graph.html" id="view-graph" class="btn btn-info">グラフを見る</a>
+          </div>
+          <!-- ▲ 移動ここまで -->
 
           <div id="result" class="alert alert-info mt-3">
             <div id="sleep-result" class="font-weight-bold"></div>
@@ -109,13 +117,6 @@
           <p id="most-common-chronotype" class="mt-3 font-weight-bold text-primary"></p>
         </section>
       </div>
-
-      <hr />
-      <section class="mt-4">
-        <h5>エクスポート</h5>
-        <button id="download-csv" class="btn btn-success">CSVをダウンロード</button>
-        <a href="sleep-graph.html" id="view-graph" class="btn btn-info ml-2">グラフを見る</a>
-      </section>
     </div>
   </main>
 
