@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// Firebase設定（完全な構成）
+// Firebase設定
 const firebaseConfig = {
   apiKey: "AIzaSyAqrTNSA-E-fq_63oS3cNjgeC7WYr3l-bQ",
   authDomain: "bmi-app-a99f3.firebaseapp.com",
@@ -16,6 +16,7 @@ const auth = getAuth(app);
 let currentUID = null;
 let undoData = null;
 
+// 匿名ログイン
 onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUID = user.uid;
@@ -32,6 +33,7 @@ userIdInput.addEventListener("input", () => {
   localStorage.setItem("userId", userIdInput.value);
 });
 
+// 記録ボタン
 document.getElementById("record-button").addEventListener("click", () => {
   const sleepTime = document.getElementById("sleepTime").value;
   const wakeTime = document.getElementById("wakeTime").value;
@@ -48,17 +50,19 @@ document.getElementById("record-button").addEventListener("click", () => {
     return;
   }
 
-  const quality = qualityRadio.value;
+  const quality = parseInt(qualityRadio.value);
   const isWeekend = document.getElementById("isWeekend").checked;
   const userId = userIdInput.value || "unknown";
 
   const sleepDate = new Date(`${date}T${sleepTime}`);
   const wakeDate = new Date(`${date}T${wakeTime}`);
   if (wakeDate <= sleepDate) wakeDate.setDate(wakeDate.getDate() + 1);
+
   const durationMin = Math.round((wakeDate - sleepDate) / 60000);
   const chronotype = getChronotype(sleepDate);
-  const comment = generateComment(durationMin, quality);
-  displayResult(durationMin, chronotype, comment);
+  const { comment, score } = generateComment(durationMin, quality, sleepDate);
+
+  displayResult(durationMin, chronotype, comment, score);
 
   const data = {
     userId,
@@ -77,6 +81,7 @@ document.getElementById("record-button").addEventListener("click", () => {
   push(historyRef, data);
 });
 
+// クロノタイプ
 function getChronotype(sleepDate) {
   const hour = sleepDate.getHours();
   if (hour >= 5 && hour < 8) return "朝型";
@@ -86,19 +91,71 @@ function getChronotype(sleepDate) {
   return "夜型";
 }
 
-function generateComment(duration, quality) {
-  const q = parseInt(quality);
-  if (duration < 240 || q <= 1) return "睡眠が不足しています。早めの就寝を心がけましょう。";
-  if (duration >= 480 && q >= 3) return "質の良い睡眠が取れています。";
-  return "睡眠の改善余地があります。";
+// コメント生成（スコア最大8点）
+function generateComment(duration, quality, sleepDate) {
+  let messages = [];
+  let score = 0;
+  const sleepHour = sleepDate.getHours();
+
+  // 睡眠時間（最大 +2）
+  if (duration < 240) {
+    messages.push("極端に短い睡眠です。体調に注意してください。");
+  } else if (duration < 360) {
+    messages.push("もう少し長く睡眠をとれると良いでしょう。");
+    score += 1;
+  } else if (duration <= 540) {
+    messages.push("十分な睡眠時間が確保できています。");
+    score += 2;
+  } else {
+    messages.push("やや長めの睡眠です。生活リズムに注意してください。");
+    score += 1;
+  }
+
+  // 睡眠の質（最大 +3）
+  if (quality <= 1) {
+    messages.push("睡眠の質が低いようです。寝る前のリラックスを意識しましょう。");
+  } else if (quality === 2) {
+    messages.push("やや眠りが浅いようです。就寝環境を見直してみましょう。");
+    score += 1;
+  } else if (quality === 3) {
+    messages.push("まずまず良い睡眠が取れています。");
+    score += 2;
+  } else if (quality >= 4) {
+    messages.push("非常に良い睡眠の質です。理想的な状態です。");
+    score += 3;
+  }
+
+  // 就寝時間（最大 +3）
+  if (sleepHour >= 0 && sleepHour < 19) {
+    messages.push("就寝がかなり早いようです。生活リズムが安定していれば問題ありません。");
+    score += 2;
+  } else if (sleepHour >= 19 && sleepHour < 23) {
+    messages.push("理想的な時間帯に就寝できています。");
+    score += 3;
+  } else {
+    messages.push("就寝が遅めです。早めの睡眠を心がけましょう。");
+  }
+
+  // 総評
+  let summary = "";
+  if (score <= 3) summary = "改善の余地があります。生活リズムを見直しましょう。";
+  else if (score <= 6) summary = "おおむね良い睡眠習慣です。引き続き意識しましょう。";
+  else summary = "とても良い睡眠状態です！この調子を維持してください。";
+
+  messages.push(`【総評】${summary}`);
+
+  return { comment: messages.join("\n"), score };
 }
 
-function displayResult(duration, chronotype, comment) {
-  document.getElementById("sleep-result").textContent = `睡眠時間: ${duration}分 / クロノタイプ: ${chronotype}`;
+// 結果表示
+function displayResult(duration, chronotype, comment, score) {
+  document.getElementById("sleep-result").textContent = 
+    `睡眠時間: ${duration}分 / クロノタイプ: ${chronotype} / スコア: ${score}/8`;
   document.getElementById("sleep-comment").textContent = comment;
   document.getElementById("result").style.display = "block";
 }
 
+// 履歴読込
 function loadHistory() {
   const historyRef = ref(db, `sleep_history/${currentUID}`);
   onValue(historyRef, (snapshot) => {
@@ -113,7 +170,6 @@ function loadHistory() {
         ...value,
         dateObj: new Date(value.date)
       }))
-      // 日付の新しい順に並べ替え
       .sort((a, b) => b.dateObj - a.dateObj || b.timestamp - a.timestamp)
       .slice(0, 30);
 
@@ -140,6 +196,7 @@ function loadHistory() {
   });
 }
 
+// クロノタイプ統計
 function updateMostCommonChronotype(entries) {
   const counts = {};
   for (const e of entries) {
@@ -150,6 +207,7 @@ function updateMostCommonChronotype(entries) {
   label.textContent = most ? `最も多いクロノタイプ: ${most[0]}` : "";
 }
 
+// Undo
 document.getElementById("undo-button").addEventListener("click", () => {
   if (!undoData || !currentUID) return;
   const refPath = ref(db, `sleep_history/${currentUID}`);
@@ -159,6 +217,7 @@ document.getElementById("undo-button").addEventListener("click", () => {
   document.getElementById("undo-box").classList.add("d-none");
 });
 
+// CSVダウンロード
 document.getElementById("download-csv").addEventListener("click", () => {
   const list = document.querySelectorAll("#history-list .list-group-item");
   if (!list.length) return;
