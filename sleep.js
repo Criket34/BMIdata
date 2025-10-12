@@ -74,6 +74,7 @@ document.getElementById("record-button").addEventListener("click", () => {
     comment,
     quality,
     isWeekend,
+    score, // ← スコアを保存（表示はしない）
     timestamp: Date.now(),
   };
 
@@ -176,6 +177,16 @@ function loadHistory() {
     for (const entry of entries) {
       const li = document.createElement("li");
       li.className = "list-group-item";
+
+      // ★スコアに応じて背景色を変更
+      if (entry.score <= 3) {
+        li.style.backgroundColor = "#f8d7da"; // 赤
+      } else if (entry.score <= 6) {
+        li.style.backgroundColor = "#fff3cd"; // 黄
+      } else {
+        li.style.backgroundColor = "#d4edda"; // 緑
+      }
+
       li.innerHTML = `
         <strong>${entry.date}</strong><br>
         就寝: ${entry.sleepTime} / 起床: ${entry.wakeTime}<br>
@@ -183,12 +194,14 @@ function loadHistory() {
         質: ${entry.quality} / 休日: ${entry.isWeekend ? "はい" : "いいえ"}
         <button class="btn btn-sm btn-danger float-right delete-btn">削除</button>
       `;
+
       li.querySelector(".delete-btn").addEventListener("click", () => {
         const entryRef = ref(db, `sleep_history/${currentUID}/${entry.key}`);
         remove(entryRef);
         undoData = entry;
         document.getElementById("undo-box").classList.remove("d-none");
       });
+
       historyList.appendChild(li);
     }
 
