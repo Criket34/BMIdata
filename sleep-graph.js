@@ -70,7 +70,6 @@ function drawSleepChart(entries) {
   if (sleepChart) sleepChart.destroy();
 
   sleepChart = new Chart(ctx, {
-    type: "bar",
     data: {
       labels: labels,
       datasets: [
@@ -81,29 +80,31 @@ function drawSleepChart(entries) {
           backgroundColor: "rgba(0,123,255,0.5)",
           borderColor: "rgba(0,123,255,1)",
           borderWidth: 1,
-          yAxisID: "y",
+          yAxisID: "y", // ✅ 左軸（分）
         },
         {
           type: "line",
-          label: "就寝時刻",
+          label: "就寝時刻（時）",
           data: sleepTimes,
           borderColor: "orange",
           backgroundColor: "rgba(255,165,0,0.3)",
           borderWidth: 2,
           pointRadius: 4,
           pointHoverRadius: 6,
-          tension: 0 // ✅ カーブを無効化
+          tension: 0,
+          yAxisID: "y1" // ✅ 右軸（時）
         },
         {
           type: "line",
-          label: "起床時刻",
+          label: "起床時刻（時）",
           data: wakeTimes,
           borderColor: "green",
           backgroundColor: "rgba(0,128,0,0.3)",
           borderWidth: 2,
           pointRadius: 4,
           pointHoverRadius: 6,
-          tension: 0 // ✅ カーブを無効化
+          tension: 0,
+          yAxisID: "y1" // ✅ 右軸（時）
         }
       ]
     },
@@ -117,18 +118,22 @@ function drawSleepChart(entries) {
         tooltip: { mode: "index", intersect: false }
       },
       scales: {
+        // 左軸（睡眠時間）
         y: {
           type: "linear",
           position: "left",
           title: { display: true, text: "睡眠時間（分）" },
-          beginAtZero: true
+          beginAtZero: true,
+          suggestedMax: 600 // 10時間程度まで見やすく
         },
+        // 右軸（時刻）
         y1: {
           type: "linear",
           position: "right",
           title: { display: true, text: "時刻（時）" },
           min: 0,
           max: 24,
+          grid: { drawOnChartArea: false }, // ✅ 左軸と重ならないように
           ticks: { 
             stepSize: 2, 
             callback: v => `${Math.floor(v)}:00` 
