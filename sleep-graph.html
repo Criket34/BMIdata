@@ -4,13 +4,33 @@
   <meta charset="UTF-8">
   <title>睡眠グラフ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Bootstrap（デザイン用） -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* 左上固定ボタン */
+    #back-btn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+    }
+  </style>
 </head>
 <body class="p-3">
 
-  <h1>睡眠グラフ（最新30件）</h1>
-  <canvas id="sleepChart" width="400" height="200"></canvas>
+  <!-- 元ページに戻るボタン -->
+  <a href="sleep.html" class="btn btn-primary" id="back-btn">睡眠記録に戻る</a>
 
+  <div class="container mt-5">
+    <h2>睡眠グラフ（最新30件）</h2>
+    <canvas id="sleepChart" width="400" height="200"></canvas>
+  </div>
+
+  <!-- グラフスクリプト -->
   <script type="module" src="sleep-graph.js"></script>
 </body>
 </html>
