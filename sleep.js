@@ -26,7 +26,7 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// ユーザーID保存と読込
+// ユーザーID保存
 const userIdInput = document.getElementById("user-id");
 userIdInput.value = localStorage.getItem("userId") || "";
 userIdInput.addEventListener("input", () => {
@@ -92,13 +92,12 @@ function getChronotype(sleepDate) {
   return "夜型";
 }
 
-// コメントとスコア生成（最大8点）
+// コメント生成
 function generateComment(duration, quality, sleepDate) {
   let messages = [];
   let score = 0;
   const sleepHour = sleepDate.getHours();
 
-  // 睡眠時間（+2点）
   if (duration < 240) {
     messages.push("極端に短い睡眠です。体調に注意してください。");
   } else if (duration < 360) {
@@ -112,36 +111,30 @@ function generateComment(duration, quality, sleepDate) {
     score += 1;
   }
 
-  // 質（+3点）
   if (quality <= 1) {
-    messages.push("睡眠の質が低いようです。寝る前のリラックスを意識しましょう。");
+    messages.push("睡眠の質が低いようです。");
   } else if (quality === 2) {
-    messages.push("やや眠りが浅いようです。就寝環境を見直してみましょう。");
+    messages.push("やや浅い眠りです。");
     score += 1;
   } else if (quality === 3) {
-    messages.push("まずまず良い睡眠が取れています。");
+    messages.push("まずまず良い睡眠です。");
     score += 2;
   } else if (quality >= 4) {
-    messages.push("非常に良い睡眠の質です。理想的な状態です。");
+    messages.push("理想的な睡眠です。");
     score += 3;
   }
 
-  // 就寝時間（+3点）
-  if (sleepHour >= 0 && sleepHour < 19) {
-    messages.push("就寝がかなり早いようです。生活リズムが安定していれば問題ありません。");
-    score += 2;
-  } else if (sleepHour >= 19 && sleepHour < 23) {
-    messages.push("理想的な時間帯に就寝できています。");
+  if (sleepHour >= 19 && sleepHour < 23) {
+    messages.push("理想的な就寝時間です。");
     score += 3;
   } else {
-    messages.push("就寝が遅めです。早めの睡眠を心がけましょう。");
+    messages.push("就寝時間を早めると良いでしょう。");
   }
 
-  // 総評
   let summary = "";
-  if (score <= 3) summary = "改善の余地があります。生活リズムを見直しましょう。";
-  else if (score <= 6) summary = "おおむね良い睡眠習慣です。引き続き意識しましょう。";
-  else summary = "とても良い睡眠状態です！この調子を維持してください。";
+  if (score <= 3) summary = "改善の余地あり。";
+  else if (score <= 6) summary = "おおむね良好。";
+  else summary = "とても良好！";
 
   messages.push(`【総評】${summary}`);
 
@@ -156,7 +149,7 @@ function displayResult(duration, chronotype, comment, score) {
   document.getElementById("result").style.display = "block";
 }
 
-// 履歴読込
+// 履歴表示
 function loadHistory() {
   const historyRef = ref(db, `sleep_history/${currentUID}`);
   onValue(historyRef, (snapshot) => {
@@ -166,22 +159,18 @@ function loadHistory() {
     if (!data) return;
 
     const entries = Object.entries(data)
-      .map(([key, value]) => ({
-        key,
-        ...value,
-        dateObj: new Date(value.date)
-      }))
-      .sort((a, b) => b.dateObj - a.dateObj || b.timestamp - a.timestamp)
+      .map(([key, value]) => ({ key, ...value }))
+      .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 30);
 
     for (const entry of entries) {
       const li = document.createElement("li");
       li.className = "list-group-item";
+      li.dataset.date = entry.date; // ← CSV出力用
 
-      // スコアに応じて背景色変更
-      if (entry.score <= 3) li.style.backgroundColor = "#f8d7da"; // 赤
-      else if (entry.score <= 6) li.style.backgroundColor = "#fff3cd"; // 黄
-      else li.style.backgroundColor = "#d4edda"; // 緑
+      if (entry.score <= 3) li.style.backgroundColor = "#f8d7da";
+      else if (entry.score <= 6) li.style.backgroundColor = "#fff3cd";
+      else li.style.backgroundColor = "#d4edda";
 
       li.innerHTML = `
         <strong>${entry.date}</strong><br>
@@ -192,71 +181,57 @@ function loadHistory() {
       `;
 
       li.querySelector(".delete-btn").addEventListener("click", () => {
-        const entryRef = ref(db, `sleep_history/${currentUID}/${entry.key}`);
-        remove(entryRef);
+        remove(ref(db, `sleep_history/${currentUID}/${entry.key}`));
         undoData = entry;
         document.getElementById("undo-box").classList.remove("d-none");
       });
 
       historyList.appendChild(li);
     }
-
-    updateMostCommonChronotype(entries);
   });
 }
 
-// クロノタイプ統計
-function updateMostCommonChronotype(entries) {
-  const counts = {};
-  for (const e of entries) counts[e.chronotype] = (counts[e.chronotype] || 0) + 1;
-  const most = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-  const label = document.getElementById("most-common-chronotype");
-  label.textContent = most ? `最も多いクロノタイプ: ${most[0]}` : "";
-}
-
-// Undo
-document.getElementById("undo-button").addEventListener("click", () => {
-  if (!undoData || !currentUID) return;
-  const refPath = ref(db, `sleep_history/${currentUID}`);
-  const { key, ...data } = undoData;
-  push(refPath, data);
-  undoData = null;
-  document.getElementById("undo-box").classList.add("d-none");
-});
-
-// ✅ Safari対応版 CSVダウンロード
-document.getElementById("download-csv").addEventListener("click", () => {
+// CSVダウンロード
+document.getElementById("download-csv").addEventListener("click", async () => {
   const list = document.querySelectorAll("#history-list .list-group-item");
-  if (!list.length) {
-    alert("履歴がありません。");
-    return;
-  }
+  if (!list.length) return alert("履歴がありません");
 
   const rows = [["ID", "Date", "SleepTime", "WakeTime", "TST(min)", "SleepQuality", "IsWeekend"]];
-  const csvEscape = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-
   list.forEach((li) => {
-    const text = li.innerText.replace(/\r/g, "");
     const id = document.getElementById("user-id").value || "unknown";
-    const date = (text.match(/\d{4}-\d{2}-\d{2}/) || [,""])[1];
-    const sleepTime = (text.match(/就寝[:：]?\s*([0-2]\d:[0-5]\d)/) || [,""])[1];
-    const wakeTime = (text.match(/起床[:：]?\s*([0-2]\d:[0-5]\d)/) || [,""])[1];
-    const duration = (text.match(/時間[:：]?\s*(\d+)分/) || [,""])[1];
-    const quality = (text.match(/質[:：]?\s*(\d)/) || [,""])[1];
+    const date = li.dataset.date || "";
+    const text = li.innerText;
+    const sleepTime = text.match(/就寝: (\d{2}:\d{2})/)?.[1] || "";
+    const wakeTime = text.match(/起床: (\d{2}:\d{2})/)?.[1] || "";
+    const duration = text.match(/時間: (\d+)分/)?.[1] || "";
+    const quality = text.match(/質: (\d)/)?.[1] || "";
     const isWeekend = text.includes("休日: はい") ? "はい" : "いいえ";
-
-    rows.push([id, date, sleepTime, wakeTime, duration, quality, isWeekend].map(csvEscape));
+    rows.push([id, date, sleepTime, wakeTime, duration, quality, isWeekend]);
   });
 
-  const csvContent = "\uFEFF" + rows.map(r => r.join(",")).join("\n");
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
+  const csv = rows.map(r => r.join(",")).join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
 
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "sleep_data.csv";
-  document.body.appendChild(a); // ← Safari対応
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // Safari対応版 保存処理
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await showSaveFilePicker({
+        suggestedName: "sleep_data.csv",
+        types: [{ description: "CSV file", accept: { "text/csv": [".csv"] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      alert("CSVファイルを保存しました。");
+    } catch (e) {
+      console.warn("保存キャンセルまたは失敗:", e);
+    }
+  } else {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "sleep_data.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 });
