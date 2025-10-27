@@ -4,9 +4,7 @@ const firebaseConfig = {
   authDomain: "bmi-app-a99f3.firebaseapp.com",
   projectId: "bmi-app-a99f3",
   storageBucket: "bmi-app-a99f3.appspot.com",
-  messagingSenderId: "168322055498",
-  appId: "1:168322055498:web:YOUR_APP_ID_HERE",
-  databaseURL: "https://bmi-app-a99f3-default-rtdb.firebaseio.com/"
+  databaseURL: "https://bmi-app-a99f3-default-rtdb.firebaseio.com/",
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -34,22 +32,17 @@ auth.onAuthStateChanged(user => {
         return;
       }
 
-      const dates = [];
-      const bmiValues = [];
-      const weights = [];
-      const heights = [];
+      const entries = Object.values(data).filter(e => e.date && e.bmi);
 
-      Object.values(data).forEach(entry => {
-        if (entry.bmi && entry.date) {
-          const dateStr = new Date(entry.date).toLocaleDateString();
-          dates.push(dateStr);
-          bmiValues.push(parseFloat(entry.bmi));
-          weights.push(entry.weight || "不明");
-          heights.push(entry.height || "不明");
-        }
-      });
+      // ✅ 日付で昇順（古い→新しい）にソート
+      entries.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-      // グラフ描画
+      const dates = entries.map(e => new Date(e.date).toLocaleDateString());
+      const bmiValues = entries.map(e => parseFloat(e.bmi));
+      const weights = entries.map(e => e.weight || "不明");
+      const heights = entries.map(e => e.height || "不明");
+
+      // ✅ グラフ描画
       const ctx = document.getElementById('bmiChart').getContext('2d');
       new Chart(ctx, {
         type: 'line',
@@ -61,7 +54,7 @@ auth.onAuthStateChanged(user => {
             borderColor: 'rgba(75, 192, 192, 1)',
             backgroundColor: 'rgba(75, 192, 192, 0.2)',
             borderWidth: 2,
-            tension: 0,        // ✅ 曲線を無効化
+            tension: 0,        // 曲線を無効化して直線表示
             pointRadius: 4,
             pointHoverRadius: 6
           }]
