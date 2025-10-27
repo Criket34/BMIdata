@@ -74,7 +74,7 @@ document.getElementById("record-button").addEventListener("click", () => {
     comment,
     quality,
     isWeekend,
-    score, // ← スコアを保存（表示はしない）
+    score,
     timestamp: Date.now(),
   };
 
@@ -82,7 +82,7 @@ document.getElementById("record-button").addEventListener("click", () => {
   push(historyRef, data);
 });
 
-// クロノタイプ
+// クロノタイプ判定
 function getChronotype(sleepDate) {
   const hour = sleepDate.getHours();
   if (hour >= 5 && hour < 8) return "朝型";
@@ -92,13 +92,13 @@ function getChronotype(sleepDate) {
   return "夜型";
 }
 
-// コメント生成（スコア最大8点）
+// コメントとスコア生成（最大8点）
 function generateComment(duration, quality, sleepDate) {
   let messages = [];
   let score = 0;
   const sleepHour = sleepDate.getHours();
 
-  // 睡眠時間（最大 +2）
+  // 睡眠時間（+2点）
   if (duration < 240) {
     messages.push("極端に短い睡眠です。体調に注意してください。");
   } else if (duration < 360) {
@@ -112,7 +112,7 @@ function generateComment(duration, quality, sleepDate) {
     score += 1;
   }
 
-  // 睡眠の質（最大 +3）
+  // 質（+3点）
   if (quality <= 1) {
     messages.push("睡眠の質が低いようです。寝る前のリラックスを意識しましょう。");
   } else if (quality === 2) {
@@ -126,7 +126,7 @@ function generateComment(duration, quality, sleepDate) {
     score += 3;
   }
 
-  // 就寝時間（最大 +3）
+  // 就寝時間（+3点）
   if (sleepHour >= 0 && sleepHour < 19) {
     messages.push("就寝がかなり早いようです。生活リズムが安定していれば問題ありません。");
     score += 2;
@@ -150,7 +150,7 @@ function generateComment(duration, quality, sleepDate) {
 
 // 結果表示
 function displayResult(duration, chronotype, comment, score) {
-  document.getElementById("sleep-result").textContent = 
+  document.getElementById("sleep-result").textContent =
     `睡眠時間: ${duration}分 / クロノタイプ: ${chronotype} / スコア: ${score}/8`;
   document.getElementById("sleep-comment").textContent = comment;
   document.getElementById("result").style.display = "block";
@@ -178,14 +178,10 @@ function loadHistory() {
       const li = document.createElement("li");
       li.className = "list-group-item";
 
-      // ★スコアに応じて背景色を変更
-      if (entry.score <= 3) {
-        li.style.backgroundColor = "#f8d7da"; // 赤
-      } else if (entry.score <= 6) {
-        li.style.backgroundColor = "#fff3cd"; // 黄
-      } else {
-        li.style.backgroundColor = "#d4edda"; // 緑
-      }
+      // スコアに応じて背景色変更
+      if (entry.score <= 3) li.style.backgroundColor = "#f8d7da"; // 赤
+      else if (entry.score <= 6) li.style.backgroundColor = "#fff3cd"; // 黄
+      else li.style.backgroundColor = "#d4edda"; // 緑
 
       li.innerHTML = `
         <strong>${entry.date}</strong><br>
@@ -212,9 +208,7 @@ function loadHistory() {
 // クロノタイプ統計
 function updateMostCommonChronotype(entries) {
   const counts = {};
-  for (const e of entries) {
-    counts[e.chronotype] = (counts[e.chronotype] || 0) + 1;
-  }
+  for (const e of entries) counts[e.chronotype] = (counts[e.chronotype] || 0) + 1;
   const most = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
   const label = document.getElementById("most-common-chronotype");
   label.textContent = most ? `最も多いクロノタイプ: ${most[0]}` : "";
@@ -230,30 +224,39 @@ document.getElementById("undo-button").addEventListener("click", () => {
   document.getElementById("undo-box").classList.add("d-none");
 });
 
-// CSVダウンロード
+// ✅ Safari対応版 CSVダウンロード
 document.getElementById("download-csv").addEventListener("click", () => {
   const list = document.querySelectorAll("#history-list .list-group-item");
-  if (!list.length) return;
+  if (!list.length) {
+    alert("履歴がありません。");
+    return;
+  }
 
   const rows = [["ID", "Date", "SleepTime", "WakeTime", "TST(min)", "SleepQuality", "IsWeekend"]];
+  const csvEscape = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+
   list.forEach((li) => {
-    const text = li.innerText;
+    const text = li.innerText.replace(/\r/g, "");
     const id = document.getElementById("user-id").value || "unknown";
-    const date = text.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || "";
-    const sleepTime = text.match(/就寝: (\d{2}:\d{2})/)?.[1] || "";
-    const wakeTime = text.match(/起床: (\d{2}:\d{2})/)?.[1] || "";
-    const duration = text.match(/時間: (\d+)分/)?.[1] || "";
-    const quality = text.match(/質: (\d)/)?.[1] || "";
+    const date = (text.match(/\d{4}-\d{2}-\d{2}/) || [,""])[1];
+    const sleepTime = (text.match(/就寝[:：]?\s*([0-2]\d:[0-5]\d)/) || [,""])[1];
+    const wakeTime = (text.match(/起床[:：]?\s*([0-2]\d:[0-5]\d)/) || [,""])[1];
+    const duration = (text.match(/時間[:：]?\s*(\d+)分/) || [,""])[1];
+    const quality = (text.match(/質[:：]?\s*(\d)/) || [,""])[1];
     const isWeekend = text.includes("休日: はい") ? "はい" : "いいえ";
-    rows.push([id, date, sleepTime, wakeTime, duration, quality, isWeekend]);
+
+    rows.push([id, date, sleepTime, wakeTime, duration, quality, isWeekend].map(csvEscape));
   });
 
-  const csv = rows.map(r => r.join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
+  const csvContent = "\uFEFF" + rows.map(r => r.join(",")).join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
+
   const a = document.createElement("a");
   a.href = url;
   a.download = "sleep_data.csv";
+  document.body.appendChild(a); // ← Safari対応
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
 });
