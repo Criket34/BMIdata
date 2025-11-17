@@ -149,7 +149,7 @@ function displayResult(duration, chronotype, comment, score) {
   document.getElementById("result").style.display = "block";
 }
 
-// 履歴表示
+// 履歴表示（日付順 書き換え版）
 function loadHistory() {
   const historyRef = ref(db, `sleep_history/${currentUID}`);
   onValue(historyRef, (snapshot) => {
@@ -158,9 +158,10 @@ function loadHistory() {
     const data = snapshot.val();
     if (!data) return;
 
+    // ▼ 日付でソート（YYYY-MM-DD → 日付としてソート）
     const entries = Object.entries(data)
       .map(([key, value]) => ({ key, ...value }))
-      .sort((a, b) => b.timestamp - a.timestamp)
+      .sort((a, b) => new Date(b.date) - new Date(a.date))  // ★ 修正ポイント
       .slice(0, 30);
 
     for (const entry of entries) {
@@ -191,7 +192,7 @@ function loadHistory() {
   });
 }
 
-// CSVダウンロード（文字化け対策済み）
+// CSVダウンロード（Excel文字化け対策）
 document.getElementById("download-csv").addEventListener("click", async () => {
   const list = document.querySelectorAll("#history-list .list-group-item");
   if (!list.length) return alert("履歴がありません");
@@ -199,10 +200,8 @@ document.getElementById("download-csv").addEventListener("click", async () => {
   const rows = [["ID", "Date", "SleepTime", "WakeTime", "TST(min)", "SleepQuality", "IsWeekend"]];
 
   list.forEach((li) => {
-
-    // ▼ 日本語IDをASCIIのみへ変換（Excel文字化け防止）
     let idRaw = document.getElementById("user-id").value || "unknown";
-    let id = idRaw.replace(/[^\x00-\x7F]/g, "");
+    let id = idRaw.replace(/[^\x00-\x7F]/g, ""); // 日本語を削除
 
     const date = li.dataset.date || "";
     const text = li.innerText;
@@ -210,19 +209,15 @@ document.getElementById("download-csv").addEventListener("click", async () => {
     const wakeTime = text.match(/起床: (\d{2}:\d{2})/)?.[1] || "";
     const duration = text.match(/時間: (\d+)分/)?.[1] || "";
     const quality = text.match(/質: (\d)/)?.[1] || "";
-
-    // ▼ 「はい → 1」「いいえ → 0」
     const isWeekend = text.includes("休日: はい") ? 1 : 0;
 
     rows.push([id, date, sleepTime, wakeTime, duration, quality, isWeekend]);
   });
 
-  // BOM付きでExcelの文字化けを防止
   const utf8BOM = "\uFEFF";
   const csv = rows.map(r => r.join(",")).join("\r\n");
   const blob = new Blob([utf8BOM + csv], { type: "text/csv;charset=utf-8" });
 
-  // Safari対応
   if (window.showSaveFilePicker) {
     try {
       const handle = await showSaveFilePicker({
