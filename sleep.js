@@ -166,7 +166,7 @@ function loadHistory() {
     for (const entry of entries) {
       const li = document.createElement("li");
       li.className = "list-group-item";
-      li.dataset.date = entry.date; // ← CSV出力用
+      li.dataset.date = entry.date;
 
       if (entry.score <= 3) li.style.backgroundColor = "#f8d7da";
       else if (entry.score <= 6) li.style.backgroundColor = "#fff3cd";
@@ -191,28 +191,38 @@ function loadHistory() {
   });
 }
 
-// CSVダウンロード
+// CSVダウンロード（文字化け対策済み）
 document.getElementById("download-csv").addEventListener("click", async () => {
   const list = document.querySelectorAll("#history-list .list-group-item");
   if (!list.length) return alert("履歴がありません");
 
   const rows = [["ID", "Date", "SleepTime", "WakeTime", "TST(min)", "SleepQuality", "IsWeekend"]];
+
   list.forEach((li) => {
-    const id = document.getElementById("user-id").value || "unknown";
+
+    // ▼ 日本語IDをASCIIのみへ変換（Excel文字化け防止）
+    let idRaw = document.getElementById("user-id").value || "unknown";
+    let id = idRaw.replace(/[^\x00-\x7F]/g, "");
+
     const date = li.dataset.date || "";
     const text = li.innerText;
     const sleepTime = text.match(/就寝: (\d{2}:\d{2})/)?.[1] || "";
     const wakeTime = text.match(/起床: (\d{2}:\d{2})/)?.[1] || "";
     const duration = text.match(/時間: (\d+)分/)?.[1] || "";
     const quality = text.match(/質: (\d)/)?.[1] || "";
-    const isWeekend = text.includes("休日: はい") ? "はい" : "いいえ";
+
+    // ▼ 「はい → 1」「いいえ → 0」
+    const isWeekend = text.includes("休日: はい") ? 1 : 0;
+
     rows.push([id, date, sleepTime, wakeTime, duration, quality, isWeekend]);
   });
 
+  // BOM付きでExcelの文字化けを防止
+  const utf8BOM = "\uFEFF";
   const csv = rows.map(r => r.join(",")).join("\r\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const blob = new Blob([utf8BOM + csv], { type: "text/csv;charset=utf-8" });
 
-  // Safari対応版 保存処理
+  // Safari対応
   if (window.showSaveFilePicker) {
     try {
       const handle = await showSaveFilePicker({
