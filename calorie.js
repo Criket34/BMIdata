@@ -26,7 +26,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const weightInput = document.getElementById("user-weight");
   const historyList = document.getElementById("history-list");
   const loginBtn = document.getElementById("login-btn");
-  const logoutBtn = document.getElementById("logout-btn");
+
+  // ★ logout-btn は完全削除したため取得しない ★
 
   const DEFAULT_WEIGHT = 60;
 
@@ -121,6 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   addEntryBtn.addEventListener("click", createEntry);
 
+  // カロリー計算
   calculateBtn.addEventListener("click", async () => {
     const entries = entriesContainer.querySelectorAll(".entry-group");
     const weight = parseFloat(weightInput.value) || DEFAULT_WEIGHT;
@@ -139,6 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
     resultBox.textContent = `合計消費カロリー：${totalCalories.toFixed(2)} kcal`;
     resultBox.style.display = "block";
 
+    // 目標グラフ
     const goal = parseFloat(localStorage.getItem("calorieGoal")) || 0;
     if (goal > 0) {
       if (chart) chart.destroy();
@@ -160,6 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
+    // 履歴保存
     const now = new Date();
     const entry = {
       kcal: totalCalories,
@@ -193,6 +197,7 @@ document.addEventListener("DOMContentLoaded", () => {
     historyList.prepend(item);
   };
 
+  // 履歴読み込み
   const loadHistoryFromRealtimeDB = () => {
     if (!currentUser) return;
     const ref = db.ref(`calorieRecords/${currentUser.uid}`);
@@ -210,6 +215,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
+  // 目標設定
   setGoalBtn.addEventListener("click", () => {
     const newGoal = parseFloat(goalInput.value);
     if (isNaN(newGoal) || newGoal <= 0) {
@@ -230,24 +236,22 @@ document.addEventListener("DOMContentLoaded", () => {
     goalStatus.textContent = `目標カロリー（${newGoal} kcal）を設定しました。`;
   });
 
+  // ログイン（ログアウトは削除）
   loginBtn.addEventListener("click", () => {
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider).catch(e => alert("ログイン失敗: " + e.message));
   });
 
-  logoutBtn.addEventListener("click", () => {
-    auth.signOut().then(() => location.reload());
-  });
+  // ログアウト関連は完全削除
 
+  // 認証状態
   auth.onAuthStateChanged(user => {
     if (user) {
       currentUser = user;
-      loginBtn.style.display = "none";
-      logoutBtn.style.display = "inline-block";
+      loginBtn.style.display = "none";   // ログアウトは無いのでログインのみ制御
       loadHistoryFromRealtimeDB();
     } else {
       loginBtn.style.display = "inline-block";
-      logoutBtn.style.display = "none";
     }
   });
 
