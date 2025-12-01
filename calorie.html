@@ -4,11 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>消費カロリー記録</title>
+
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
   <style>
     .entry-group {
       border: 1px solid #ccc;
@@ -17,79 +16,63 @@
       border-radius: 5px;
       background-color: #f9f9f9;
     }
-    .flex-container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-    }
-    .left-panel, .right-panel {
-      flex: 1;
-      min-width: 300px;
-      margin: 10px;
-    }
     .scroll-container {
       max-height: 300px;
       overflow-y: auto;
-      padding-right: 10px;
-    }
-    #entries.scroll-container {
-      min-height: 200px;
-    }
-    #comparisonChart {
-      max-width: 100%;
-    }
-    .kcal-result {
-      font-weight: bold;
-      color: #007bff;
-      margin-top: 5px;
     }
   </style>
 </head>
 <body>
-  <!-- ナビゲーションタブ -->
+
+  <!-- ナビゲーション -->
   <nav class="nav nav-tabs bg-light">
-    <a class="nav-item nav-link active" href="main.html">BMI</a>
+    <a class="nav-item nav-link" href="main.html">BMI</a>
     <a class="nav-item nav-link" href="sleep.html">睡眠記録</a>
-    <a class="nav-item nav-link" href="calorie.html">消費カロリー</a>
+    <a class="nav-item nav-link active" href="calorie.html">消費カロリー</a>
   </nav>
 
   <main class="container mt-4">
-    <div class="flex-container">
-      <div class="left-panel">
+
+    <!-- 体重・目標設定 -->
+    <div class="row">
+      <div class="col-md-6">
         <div class="form-group">
-          <label for="user-weight">あなたの体重（kg）</label>
-          <input type="number" id="user-weight" class="form-control" placeholder="例：60" />
+          <label>あなたの体重（kg）</label>
+          <input type="number" id="user-weight" class="form-control"/>
         </div>
+
         <div class="form-group">
-          <label for="calorie-goal">目標消費カロリー（kcal）</label>
-          <input type="number" id="calorie-goal" class="form-control" placeholder="週に1回のみ設定可能"/>
+          <label>目標消費カロリー（kcal）</label>
+          <input type="number" id="calorie-goal" class="form-control"/>
           <button id="set-goal-btn" class="btn btn-outline-secondary mt-2">目標を設定</button>
           <div id="goal-status" class="mt-2 text-muted"></div>
         </div>
       </div>
 
-      <div class="right-panel">
+      <div class="col-md-6">
         <canvas id="comparisonChart" height="200" style="display:none;"></canvas>
       </div>
     </div>
 
     <hr/>
 
-    <div id="entries" class="scroll-container mb-3"></div>
+    <!-- 項目入力エリア -->
+    <div id="entries"></div>
 
-    <div class="mb-3">
-      <button id="add-entry-btn" class="btn btn-outline-primary">＋ 項目を追加</button>
-      <button id="calculate-btn" class="btn btn-success">消費カロリーを計算</button>
-    </div>
+    <button id="add-entry-btn" class="btn btn-outline-primary">＋ 項目を追加</button>
+    <button id="calculate-btn" class="btn btn-success ml-2">消費カロリーを計算</button>
 
-    <div id="result" class="alert alert-info" style="display:none;"></div>
+    <div id="result" class="alert alert-info mt-3" style="display:none;"></div>
 
     <h5 class="mt-4">履歴</h5>
-    <ul id="history-list" class="list-group scroll-container" style="max-height: 200px;"></ul>
+    <ul id="history-list" class="list-group scroll-container"></ul>
 
-    <!-- ★★ ログアウトボタン削除済み ★★ -->
+    <!-- CSV 出力 -->
+    <button id="download-csv" class="btn btn-outline-dark mt-3">
+      CSV をダウンロード
+    </button>
   </main>
 
-  <script src="calorie.js" defer></script>
+  <script type="module" src="calorie.js"></script>
 </body>
 </html>
