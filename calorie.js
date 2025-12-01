@@ -6,10 +6,7 @@ import {
   push,
   onValue,
   set,
-  remove,
-  query,
-  orderByChild,
-  limitToLast
+  remove
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import {
   getAuth,
@@ -23,12 +20,11 @@ const firebaseConfig = {
   databaseURL: "https://bmi-app-a99f3-default-rtdb.firebaseio.com",
   projectId: "bmi-app-a99f3",
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
 
-// ---------- DOM 要素 ----------
+// ---------- DOM ----------
 const entriesDiv = document.getElementById("entries");
 const addEntryBtn = document.getElementById("add-entry-btn");
 const calculateBtn = document.getElementById("calculate-btn");
@@ -37,14 +33,15 @@ const resultBox = document.getElementById("result");
 const userWeightInput = document.getElementById("user-weight");
 const goalInput = document.getElementById("calorie-goal");
 const setGoalBtn = document.getElementById("set-goal-btn");
-const goalStatus = document.getElementById("goal-status");
 const csvBtn = document.getElementById("download-csv");
 const chartCanvas = document.getElementById("comparisonChart");
+const dateInput = document.getElementById("record-date");
 
 let currentUID = null;
 let chart = null;
+const DEFAULT_WEIGHT = 60;
 
-// ---------- CATEGORIES (provided by user) ----------
+// ---------- CATEGORIES & METs ----------
 const CATEGORIES = {
   "ウォーキング": { "時速4km（ゆっくり）": 3.5, "時速6km（やや速め）": 4.5 },
   "ランニング": { "時速8km程度": 7.0, "時速10km": 10.0, "時速12km": 12.5, "時速14km以上": 14.0 },
@@ -70,86 +67,74 @@ const CATEGORIES = {
   }
 };
 
-// ---------- ヘルパー関数 ----------
-const DEFAULT_WEIGHT = 60;
-
+// ---------- ヘルパー ----------
 function createCategorySelect() {
   const sel = document.createElement("select");
   sel.className = "form-control category-select mb-2";
-  const options = ['<option value="" disabled selected>運動カテゴリーを選択</option>']
-    .concat(Object.keys(CATEGORIES).map(cat => `<option value="${cat}">${cat}</option>`))
+  const opts = ['<option value="" disabled selected>Category</option>']
+    .concat(Object.keys(CATEGORIES).map(c => `<option value="${c}">${c}</option>`))
     .join("");
-  sel.innerHTML = options;
+  sel.innerHTML = opts;
   return sel;
 }
-
 function createActivitySelect(disabled = true) {
   const sel = document.createElement("select");
   sel.className = "form-control activity-select mb-2";
   sel.disabled = disabled;
-  sel.innerHTML = `<option value="" disabled selected>運動を選択</option>`;
+  sel.innerHTML = `<option value="" disabled selected>Activity</option>`;
   return sel;
 }
-
 function createDurationInput() {
   const inp = document.createElement("input");
   inp.type = "number";
   inp.min = "0";
   inp.className = "form-control duration-input mb-2";
-  inp.placeholder = "運動時間（分）";
+  inp.placeholder = "Minutes";
   return inp;
 }
-
 function createKcalDisplay() {
   const d = document.createElement("div");
   d.className = "kcal-result";
   return d;
 }
-
 function populateActivityOptions(category, activitySelect) {
   const items = CATEGORIES[category];
-  activitySelect.innerHTML = `<option value="" disabled selected>運動を選択</option>` +
+  activitySelect.innerHTML = `<option value="" disabled selected>Activity</option>` +
     Object.entries(items).map(([name]) => `<option value="${name}">${name}</option>`).join("");
   activitySelect.disabled = false;
 }
-
-function calcSingleKcal(met, weight, minutes) {
+function calcKcal(met, weight, minutes) {
   return met * weight * (minutes / 60);
+}
+function todayISODate() {
+  return new Date().toISOString().slice(0,10);
 }
 
 // ---------- エントリ生成 ----------
-function addEntry(initialCategory = "", initialActivity = "", initialMinutes = "") {
+function addEntry(initial = {}) {
   const wrapper = document.createElement("div");
   wrapper.className = "entry-group";
 
   const categorySelect = createCategorySelect();
-  const activitySelect = createActivitySelect(!initialCategory);
+  const activitySelect = createActivitySelect();
   const durationInput = createDurationInput();
   const kcalDisplay = createKcalDisplay();
   const deleteBtn = document.createElement("button");
   deleteBtn.className = "btn btn-sm btn-danger mt-2";
-  deleteBtn.textContent = "削除";
+  deleteBtn.textContent = "Delete";
 
-  // set initial values if provided
-  if (initialCategory) {
-    categorySelect.value = initialCategory;
-    populateActivityOptions(initialCategory, activitySelect);
+  if (initial.category) {
+    categorySelect.value = initial.category;
+    populateActivityOptions(initial.category, activitySelect);
   }
-  if (initialActivity) {
-    activitySelect.value = initialActivity;
-  }
-  if (initialMinutes) {
-    durationInput.value = initialMinutes;
-  }
+  if (initial.activity) activitySelect.value = initial.activity;
+  if (initial.minutes) durationInput.value = initial.minutes;
 
-  // イベント - カテゴリ変更で活動を更新
   categorySelect.addEventListener("change", () => {
-    const cat = categorySelect.value;
-    populateActivityOptions(cat, activitySelect);
+    populateActivityOptions(categorySelect.value, activitySelect);
     kcalDisplay.textContent = "";
   });
 
-  // イベント - 活動 or duration 変更で kcal 表示更新
   const updateKcal = () => {
     const cat = categorySelect.value;
     const act = activitySelect.value;
@@ -157,8 +142,8 @@ function addEntry(initialCategory = "", initialActivity = "", initialMinutes = "
     const weight = parseFloat(userWeightInput.value) || DEFAULT_WEIGHT;
     if (cat && act && !isNaN(minutes) && minutes > 0) {
       const met = CATEGORIES[cat][act];
-      const kcal = calcSingleKcal(met, weight, minutes);
-      kcalDisplay.textContent = `この運動の消費カロリー：約 ${kcal.toFixed(1)} kcal`;
+      const kcal = calcKcal(met, weight, minutes);
+      kcalDisplay.textContent = `≈ ${kcal.toFixed(1)} kcal`;
     } else {
       kcalDisplay.textContent = "";
     }
@@ -170,31 +155,29 @@ function addEntry(initialCategory = "", initialActivity = "", initialMinutes = "
 
   deleteBtn.addEventListener("click", () => {
     wrapper.remove();
-    // 最低1つは残す
     if (entriesDiv.querySelectorAll(".entry-group").length === 0) addEntry();
   });
 
-  // DOM 組み立て
   wrapper.appendChild(categorySelect);
   wrapper.appendChild(activitySelect);
   wrapper.appendChild(durationInput);
   wrapper.appendChild(kcalDisplay);
   wrapper.appendChild(deleteBtn);
   entriesDiv.appendChild(wrapper);
-
   return wrapper;
 }
 
-// 最低1つのエントリを初期表示
+// 最低1つ表示
 addEntry();
 
-// 追加ボタン
-if (addEntryBtn) addEntryBtn.addEventListener("click", () => addEntry());
+// 追加ボタン位置は下部。イベント登録：
+addEntryBtn?.addEventListener("click", () => addEntry());
 
-// ---------- 計算・保存 ----------
+// ---------- 計算と保存 ----------
 async function calculateAndSave() {
   const groups = Array.from(entriesDiv.querySelectorAll(".entry-group"));
   const weight = parseFloat(userWeightInput.value) || DEFAULT_WEIGHT;
+  const dateValue = dateInput.value || todayISODate();
   let total = 0;
   const activities = [];
 
@@ -204,80 +187,77 @@ async function calculateAndSave() {
     const minutes = parseFloat(g.querySelector(".duration-input")?.value);
     if (!cat || !act || isNaN(minutes) || minutes <= 0) continue;
     const met = CATEGORIES[cat][act];
-    const kcal = calcSingleKcal(met, weight, minutes);
+    const kcal = calcKcal(met, weight, minutes);
     total += kcal;
-    activities.push({ category: cat, type: act, time_min: minutes, kcal: Math.round(kcal) });
+    activities.push({
+      category: cat,
+      type: act,
+      time_min: minutes,
+      kcal: Math.round(kcal)
+    });
   }
 
   resultBox.style.display = "block";
-  resultBox.textContent = `合計消費カロリー：${Math.round(total)} kcal`;
+  resultBox.textContent = `Total: ${Math.round(total)} kcal (${dateValue})`;
 
-  // 保存（currentUID がない場合は保存せず、ユーザーに促す）
   if (!currentUID) {
-    alert("履歴を保存するにはログインしてください（別ページでログイン済みならページを再読み込みしてください）。");
+    alert("Please login (or reload the page if you already logged in on another tab).");
     return;
   }
 
   const now = new Date();
-  const date = now.toISOString().slice(0, 10); // YYYY-MM-DD
-  const timestamp = now.getTime();
-
-  const record = {
+  const rec = {
     userId: currentUID,
-    date,
-    timestamp,
+    date: dateValue,
+    timestamp: now.getTime(),
     activities,
     total: Math.round(total),
-    isWeekend: (now.getDay() === 0 || now.getDay() === 6) ? 1 : 0 // 1 = weekend, 0 = weekday
+    isWeekend: (new Date(dateValue).getDay()===0 || new Date(dateValue).getDay()===6) ? 1 : 0
   };
 
-  const recRef = push(ref(db, `calorieRecords/${currentUID}`));
-  await set(recRef, record);
+  const r = push(ref(db, `calorieRecords/${currentUID}`));
+  await set(r, rec);
 
-  // 更新後、履歴を再読み込み（onValue でもリアルタイム更新されますが読み込みを促す）
-  // (loadHistory は onAuthStateChanged による自動更新で反映されます)
-  // ここではグラフを更新
-  updateChart();
+  // 更新されたら onValue の loadHistory が自動的に反映する
+  updateChartForDate(dateValue);
 }
 
-// 計算ボタン
-if (calculateBtn) calculateBtn.addEventListener("click", calculateAndSave);
+// calculate click
+calculateBtn?.addEventListener("click", calculateAndSave);
 
 // ---------- 履歴読み込み ----------
 function loadHistory() {
   if (!currentUID) {
-    historyList.innerHTML = `<li class="list-group-item">ログインしてください（履歴は表示されません）。</li>`;
+    historyList.innerHTML = `<li class="list-group-item">Please login to see history.</li>`;
+    chartCanvas.style.display = "none";
     return;
   }
   const dbRef = ref(db, `calorieRecords/${currentUID}`);
-  // リアルタイムで取得
   onValue(dbRef, snapshot => {
     historyList.innerHTML = "";
     const val = snapshot.val();
     if (!val) return;
 
-    // オブジェクト -> 配列に変換して日付（timestamp）降順でソート
     const records = Object.entries(val).map(([key, v]) => ({ key, ...v }));
-    records.sort((a, b) => b.timestamp - a.timestamp);
+    // timestamp 降順（最新上）
+    records.sort((a,b) => b.timestamp - a.timestamp);
 
     for (const rec of records) {
       const li = document.createElement("li");
       li.className = "list-group-item";
 
-      // 日付表示を短めに（例: 2025-10-22 09:12）
       const d = new Date(rec.timestamp);
-      const dateStr = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+      const dateStr = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      const activitiesText = (rec.activities || []).map(a => `${a.type}(${a.time_min}m=${a.kcal}kcal)`).join(" / ");
 
-      // 合計表示と活動内訳（簡易）
-      const activitiesText = rec.activities?.map(a => `${a.type}(${a.time_min}m=${a.kcal}kcal)`).join(" / ") || "";
-      li.innerHTML = `<div><strong>${dateStr}</strong> — ${rec.total} kcal</div><div class="small text-muted">${activitiesText}</div>`;
+      li.innerHTML = `<div><strong>${rec.date}</strong> (${dateStr}) — ${rec.total} kcal</div>
+                      <div class="small text-muted">${activitiesText}</div>`;
 
-      // 削除ボタン
       const delBtn = document.createElement("button");
       delBtn.className = "btn btn-sm btn-outline-danger float-right";
-      delBtn.textContent = "削除";
+      delBtn.textContent = "Delete";
       delBtn.addEventListener("click", async () => {
-        if (!confirm("この記録を削除しますか？")) return;
+        if (!confirm("Delete this record?")) return;
         await remove(ref(db, `calorieRecords/${currentUID}/${rec.key}`));
       });
 
@@ -285,93 +265,97 @@ function loadHistory() {
       historyList.appendChild(li);
     }
 
-    // グラフ更新
-    updateChart();
+    // Chart 更新（選択日または今日）
+    const currentDate = dateInput.value || todayISODate();
+    updateChartForDate(currentDate);
   });
 }
 
-// ---------- 目標設定（ローカルストレージで制限） ----------
+// ---------- 目標設定（週1回制限） ----------
 setGoalBtn?.addEventListener("click", () => {
   const newGoal = parseFloat(goalInput.value);
   if (!newGoal || newGoal <= 0) {
-    alert("有効なカロリー数を入力してください。");
+    alert("Enter a valid goal.");
     return;
   }
   const lastSet = localStorage.getItem("goalSetDate");
   const now = new Date();
   if (lastSet) {
-    const diffDays = (now - new Date(lastSet)) / (1000 * 60 * 60 * 24);
+    const diffDays = (now - new Date(lastSet)) / (1000*60*60*24);
     if (diffDays < 7) {
-      goalStatus.textContent = `※ 目標はあと${Math.ceil(7 - diffDays)}日間変更できません。`;
+      goalStatus.textContent = `Goal locked for ${Math.ceil(7 - diffDays)} day(s).`;
       return;
     }
   }
   localStorage.setItem("calorieGoal", newGoal);
   localStorage.setItem("goalSetDate", now.toISOString());
-  goalStatus.textContent = `目標カロリー（${newGoal} kcal）を設定しました。`;
-  updateChart();
+  goalStatus.textContent = `Goal set: ${newGoal} kcal`;
+  const selDate = dateInput.value || todayISODate();
+  updateChartForDate(selDate);
 });
 
-// ---------- Chart 更新（目標 vs 今日） ----------
-function updateChart() {
-  if (!chartCanvas) return;
-  const goal = parseFloat(localStorage.getItem("calorieGoal")) || 0;
-
-  // 合計実績を今日のレコードから計算
+// ---------- Chart: show Goal vs Latest Record for selected date ----------
+function updateChartForDate(targetDate) {
   if (!currentUID) {
     chartCanvas.style.display = "none";
     return;
   }
-
+  const goal = parseFloat(localStorage.getItem("calorieGoal")) || 0;
   const dbRef = ref(db, `calorieRecords/${currentUID}`);
   onValue(dbRef, snapshot => {
     const val = snapshot.val();
-    let todayTotal = 0;
-    if (val) {
-      const today = new Date().toISOString().slice(0,10);
-      Object.values(val).forEach(r => {
-        if (r.date === today) todayTotal += (r.total || 0);
-      });
+    if (!val) {
+      // no data
+      renderChart(goal, 0);
+      return;
     }
-
-    // Chart.js 表示
-    chartCanvas.style.display = "block";
-    const labels = ["Goal", "Today"];
-    const data = [goal, Math.round(todayTotal)];
-
-    if (chart) {
-      chart.data.datasets[0].data = data;
-      chart.update();
-    } else {
-      chart = new Chart(chartCanvas.getContext("2d"), {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            label: "kcal",
-            data,
-            backgroundColor: ["#cccccc", "#4caf50"]
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: { y: { beginAtZero: true } }
-        }
-      });
+    // find records with date == targetDate, take the latest (max timestamp)
+    const recs = Object.values(val).filter(r => r.date === targetDate);
+    if (recs.length === 0) {
+      renderChart(goal, 0);
+      return;
     }
-  }, { onlyOnce: false });
+    recs.sort((a,b) => b.timestamp - a.timestamp);
+    const latest = recs[0];
+    renderChart(goal, latest.total || 0);
+  }, { onlyOnce: true });
 }
 
-// ---------- CSV ダウンロード（英語ヘッダー・BOM付き） ----------
-csvBtn?.addEventListener("click", async () => {
-  if (!currentUID) {
-    alert("CSVをダウンロードするにはログインしてください（別タブでログイン済みならページを再読み込みしてください）。");
+function renderChart(goal, todayTotal) {
+  chartCanvas.style.display = "block";
+  const labels = ["Goal","Today"];
+  const data = [goal, todayTotal];
+
+  if (chart) {
+    chart.data.datasets[0].data = data;
+    chart.update();
     return;
   }
-  const snapRef = ref(db, `calorieRecords/${currentUID}`);
-  onValue(snapRef, snapshot => {
+
+  chart = new Chart(chartCanvas.getContext("2d"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "kcal",
+        data,
+        backgroundColor: ["#999","#4caf50"]
+      }]
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+  });
+}
+
+// ---------- CSV Download (English header, BOM) ----------
+csvBtn?.addEventListener("click", () => {
+  if (!currentUID) {
+    alert("Please login to download CSV.");
+    return;
+  }
+  const dbRef = ref(db, `calorieRecords/${currentUID}`);
+  onValue(dbRef, snapshot => {
     const val = snapshot.val();
-    if (!val) return alert("データがありません");
+    if (!val) return alert("No data");
 
     const rows = [["userId","date","category","type","time_min","calories","isWeekend"]];
     Object.values(val).forEach(rec => {
@@ -380,7 +364,7 @@ csvBtn?.addEventListener("click", async () => {
           rec.userId || currentUID,
           rec.date || "",
           act.category || "",
-          act.type || act.name || "",
+          act.type || "",
           String(act.time_min || ""),
           String(act.kcal || ""),
           rec.isWeekend ? "Yes" : "No"
@@ -390,8 +374,7 @@ csvBtn?.addEventListener("click", async () => {
 
     const bom = "\uFEFF";
     const csv = rows.map(r => r.map(cell => {
-      // カンマや改行を含む可能性があるセルはダブルクオートで囲む
-      const s = String(cell).replace(/"/g, '""');
+      const s = String(cell).replace(/"/g,'""');
       return /[",\n]/.test(s) ? `"${s}"` : s;
     }).join(",")).join("\r\n");
 
@@ -405,25 +388,22 @@ csvBtn?.addEventListener("click", async () => {
   }, { onlyOnce: true });
 });
 
-// ---------- 認証状態の監視 ----------
+// ---------- Auth state ----------
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUID = user.uid;
-    // 履歴を読み込む
     loadHistory();
-    // グラフ更新
-    updateChart();
   } else {
     currentUID = null;
-    // 履歴表示を促す
-    historyList.innerHTML = `<li class="list-group-item">ログインしてください（履歴は表示されません）。</li>`;
+    historyList.innerHTML = `<li class="list-group-item">Please login to see history.</li>`;
     chartCanvas.style.display = "none";
   }
 });
 
-// ページ読み込み時に、既に auth.currentUser が存在すれば処理
-if (auth.currentUser) {
-  currentUID = auth.currentUser.uid;
-  loadHistory();
-  updateChart();
+// ページロード時 date input を今日にしておく（未入力なら今日）
+if (!dateInput.value) {
+  dateInput.value = todayISODate();
 }
+
+}
+
