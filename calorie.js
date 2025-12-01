@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const chartCanvas = document.getElementById("comparisonChart");
   const weightInput = document.getElementById("user-weight");
   const historyList = document.getElementById("history-list");
-  const loginBtn = document.getElementById("login-btn");
+  const loginBtn = document.getElementById("login-btn"); // may be null in your HTML
 
   // ★ logout-btn は完全削除したため取得しない ★
 
@@ -174,6 +174,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const newRef = db.ref(`calorieRecords/${currentUser.uid}`).push();
       newRef.set(entry);
       addHistoryItem(newRef.key, now.toLocaleString(), totalCalories.toFixed(1));
+    } else {
+      // currentUserが無ければログインを促す（別ページでログインする運用なら不要だが念のため）
+      console.warn("ユーザー未ログイン。履歴は保存されません。");
+      alert("履歴を保存するにはログインしてください（別タブでログイン済みであればページを再読み込みしてください）。");
     }
   });
 
@@ -200,8 +204,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // 履歴読み込み
   const loadHistoryFromRealtimeDB = () => {
     if (!currentUser) return;
-    const ref = db.ref(`calorieRecords/${currentUser.uid}`);
-    ref.orderByChild("timestamp").limitToLast(30).once("value", snapshot => {
+    const refDb = db.ref(`calorieRecords/${currentUser.uid}`);
+    refDb.orderByChild("timestamp").limitToLast(30).once("value", snapshot => {
+      historyList.innerHTML = ""; // 表示をリセットして重複を防ぐ
       const records = [];
       snapshot.forEach(child => {
         records.push({ id: child.key, ...child.val() });
@@ -236,25 +241,34 @@ document.addEventListener("DOMContentLoaded", () => {
     goalStatus.textContent = `目標カロリー（${newGoal} kcal）を設定しました。`;
   });
 
-  // ログイン（ログアウトは削除）
-  loginBtn.addEventListener("click", () => {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(e => alert("ログイン失敗: " + e.message));
-  });
+  // ログイン（HTMLにlogin-btnがあれば設定）
+  if (loginBtn) {
+    loginBtn.addEventListener("click", () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).catch(e => alert("ログイン失敗: " + e.message));
+    });
+  }
 
-  // ログアウト関連は完全削除
-
-  // 認証状態
+  // 認証状態 - loginBtnが無くても問題なく動くように安全に処理
   auth.onAuthStateChanged(user => {
-    if (user) {
-      currentUser = user;
-      loginBtn.style.display = "none";   // ログアウトは無いのでログインのみ制御
+    currentUser = user || null;
+    if (loginBtn) {
+      loginBtn.style.display = user ? "none" : "inline-block";
+    }
+    if (currentUser) {
+      // 履歴を読み込む（ログイン済みなら）
       loadHistoryFromRealtimeDB();
-    } else {
-      loginBtn.style.display = "inline-block";
     }
   });
 
+  // ページロード時に既にログイン済みなら履歴を読み込む（別タブでログイン済みの場合に対応）
+  if (auth.currentUser) {
+    currentUser = auth.currentUser;
+    loadHistoryFromRealtimeDB();
+    if (loginBtn) loginBtn.style.display = "none";
+  }
+
+  // 最低1つのエントリは常に表示する
   createEntry();
 
   const storedGoal = localStorage.getItem("calorieGoal");
@@ -262,3 +276,4 @@ document.addEventListener("DOMContentLoaded", () => {
     goalStatus.textContent = `現在の目標：${storedGoal} kcal`;
   }
 });
+
