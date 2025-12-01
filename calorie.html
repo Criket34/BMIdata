@@ -9,26 +9,26 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
+    /* レイアウト */
+    body {padding-bottom: 40px;}
     .entry-group {
-      border: 1px solid #ccc;
+      border: 1px solid #ddd;
       padding: 10px;
-      margin-bottom: 10px;
-      border-radius: 5px;
-      background-color: #f9f9f9;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      background-color: #fafafa;
     }
-    .scroll-container {
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    .kcal-result {
-      font-weight: bold;
-      margin-top: 6px;
+    #entries { max-height: 280px; overflow-y: auto; padding-right: 8px; }
+    #history-list { max-height: 560px; overflow-y: auto; }
+    .kcal-result { font-weight: bold; margin-top: 6px; }
+    .top-buttons { gap: 8px; }
+    @media (max-width: 992px) {
+      #history-list { max-height: 240px; }
+      #entries { max-height: 200px; }
     }
   </style>
 </head>
 <body>
-
-  <!-- ナビゲーション -->
   <nav class="nav nav-tabs bg-light">
     <a class="nav-item nav-link" href="main.html">BMI</a>
     <a class="nav-item nav-link" href="sleep.html">睡眠記録</a>
@@ -37,40 +37,59 @@
 
   <main class="container mt-4">
     <div class="row">
-      <div class="col-md-6">
+      <!-- 左カラム：設定・グラフ -->
+      <div class="col-lg-6 mb-4">
         <div class="form-group">
-          <label for="user-weight">あなたの体重（kg）</label>
-          <input type="number" id="user-weight" class="form-control" placeholder="例：60" />
+          <label for="user-weight">体重（kg）</label>
+          <input id="user-weight" class="form-control" type="number" placeholder="例: 60">
+          <small class="form-text text-muted">未入力時は60kgが使用されます</small>
         </div>
 
         <div class="form-group">
           <label for="calorie-goal">目標消費カロリー（kcal）</label>
-          <input type="number" id="calorie-goal" class="form-control" placeholder="週に1回のみ設定可能"/>
-          <button id="set-goal-btn" class="btn btn-outline-secondary mt-2">目標を設定</button>
-          <div id="goal-status" class="mt-2 text-muted"></div>
+          <input id="calorie-goal" class="form-control" type="number" placeholder="例: 500">
         </div>
 
-        <div class="mt-3">
-          <button id="add-entry-btn" class="btn btn-outline-primary">＋ 項目を追加</button>
-          <button id="calculate-btn" class="btn btn-success ml-2">消費カロリーを計算</button>
+        <div class="form-group">
+          <label for="record-date">記録日（任意）</label>
+          <input id="record-date" class="form-control" type="date">
+          <small class="form-text text-muted">未入力の場合は今日の日付が使用されます</small>
         </div>
+
+        <div class="d-flex top-buttons mb-3">
+          <button id="set-goal-btn" class="btn btn-outline-secondary">Set Goal</button>
+          <button id="calculate-btn" class="btn btn-success">Calculate</button>
+          <button id="download-csv" class="btn btn-outline-dark">Download CSV</button>
+        </div>
+
+        <canvas id="comparisonChart" height="160" style="display:none;"></canvas>
 
         <div id="result" class="alert alert-info mt-3" style="display:none;"></div>
-
-        <div class="mt-3">
-          <button id="download-csv" class="btn btn-outline-dark">CSV をダウンロード</button>
-        </div>
       </div>
 
-      <div class="col-md-6">
-        <canvas id="comparisonChart" height="200" style="display:none;"></canvas>
-        <h5 class="mt-4">履歴</h5>
-        <ul id="history-list" class="list-group scroll-container"></ul>
+      <!-- 右カラム：履歴（縦長） -->
+      <div class="col-lg-6 mb-4">
+        <h5>History</h5>
+        <ul id="history-list" class="list-group"></ul>
       </div>
     </div>
 
-    <hr />
-    <div id="entries" class="mt-3"></div>
+    <hr>
+
+    <!-- 下部：運動エントリ（スクロール可能） -->
+    <div class="row">
+      <div class="col-12">
+        <h5>Exercise entries</h5>
+        <div id="entries" class="mb-2"></div>
+
+        <div class="d-flex justify-content-between align-items-center">
+          <div></div>
+          <div>
+            <button id="add-entry-btn" class="btn btn-outline-primary">＋ Add entry</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 
   <script type="module" src="calorie.js"></script>
