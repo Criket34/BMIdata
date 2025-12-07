@@ -1,100 +1,88 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>消費カロリー記録</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"/>
+  <!-- Bootstrap -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+  >
+
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    body { padding-bottom: 40px; }
+    body { background: #f5f5f5; padding-bottom: 50px; }
     .entry-group {
-      border: 1px solid #ddd;
-      padding: 10px;
-      margin-bottom: 8px;
-      border-radius: 6px;
-      background-color: #fafafa;
+      background: #ffffff;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    #entries { max-height: 280px; overflow-y: auto; padding-right: 8px; }
-    #history-list { max-height: 560px; overflow-y: auto; }
-    .kcal-result { font-weight: bold; margin-top: 6px; }
-    .top-buttons { gap: 8px; }
-    @media (max-width: 992px) {
-      #history-list { max-height: 240px; }
-      #entries { max-height: 200px; }
+    #result {
+      font-size: 1.2rem;
+      font-weight: bold;
+      display: none;
     }
   </style>
 </head>
-<body>
-  <nav class="nav nav-tabs bg-light">
-    <a class="nav-item nav-link" href="main.html">BMI</a>
-    <a class="nav-item nav-link" href="sleep.html">睡眠記録</a>
-    <a class="nav-item nav-link active" href="calorie.html">消費カロリー</a>
-  </nav>
 
-  <main class="container mt-4">
-    <div class="row">
-      <!-- 左カラム：設定・グラフ -->
-      <div class="col-lg-6 mb-4">
-        <div class="form-group">
-          <label for="user-weight">現在体重（kg）</label>
-          <input id="user-weight" class="form-control" type="number" placeholder="例: 60">
-          <small class="form-text text-muted">未入力時は60kgが使用されます</small>
-        </div>
+<body class="container my-4">
 
-        <div class="form-group">
-          <label for="calorie-goal">目標消費カロリー（kcal）</label>
-          <input id="calorie-goal" class="form-control" type="number" placeholder="例: 500">
-        </div>
+  <h2 class="mb-3">消費カロリー記録</h2>
 
-        <div class="form-group">
-          <label for="record-date">記録日（任意）</label>
-          <input id="record-date" class="form-control" type="date">
-          <small class="form-text text-muted">未入力の場合は今日の日付が使用されます</small>
-        </div>
+  <!-- 🔹 ページ移動ボタン（HTMLのみで可） -->
+  <div class="mb-4">
+    <a href="index.html" class="btn btn-secondary">← ホームに戻る</a>
+  </div>
 
-        <!-- ★ ボタン群（CSVの右にグラフページリンク） -->
-        <div class="d-flex top-buttons mb-3">
-          <button id="set-goal-btn" class="btn btn-secondary">目標設定</button>
-          <button id="calculate-btn" class="btn btn-primary">計算</button>
-          <button id="download-csv" class="btn btn-success">CSV出力</button>
+  <!-- 🔹 体重・目標カロリー -->
+  <div class="card mb-3">
+    <div class="card-body">
 
-          <!-- ★ 新規追加：グラフページへ移動 -->
-          <a href="calorie-graph.html" class="btn btn-info ml-2">グラフを見る</a>
-        </div>
+      <label class="form-label">現在体重 (kg)</label>
+      <input type="number" id="user-weight" class="form-control mb-3" placeholder="60">
 
-        <canvas id="comparisonChart" height="160" style="display:none;"></canvas>
+      <label class="form-label">目標カロリー (kcal)</label>
+      <input type="number" id="calorie-goal" class="form-control mb-2" placeholder="例: 500">
 
-        <div id="result" class="alert alert-info mt-3" style="display:none;"></div>
-      </div>
-
-      <!-- 右カラム：履歴（縦長） -->
-      <div class="col-lg-6 mb-4">
-        <h5>履歴</h5>
-        <ul id="history-list" class="list-group"></ul>
-      </div>
+      <button id="set-goal-btn" class="btn btn-primary mt-2">目標設定</button>
+      <div id="goal-status" class="mt-2 text-success fw-bold"></div>
     </div>
+  </div>
 
-    <hr>
+  <!-- 🔹 日付 -->
+  <label class="form-label">記録日</label>
+  <input type="date" id="record-date" class="form-control mb-4">
 
-    <!-- 下部：運動エントリ -->
-    <div class="row">
-      <div class="col-12">
-        <h5>運動項目</h5>
-        <div id="entries" class="mb-2"></div>
+  <!-- 🔹 運動入力エリア -->
+  <h5>運動項目</h5>
+  <div id="entries" class="mb-3"></div>
 
-        <div class="d-flex justify-content-between align-items-center">
-          <div></div>
-          <div>
-            <button id="add-entry-btn" class="btn btn-primary">＋ 項目追加</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </main>
+  <button id="add-entry-btn" class="btn btn-outline-secondary mb-3">項目追加</button>
+  <button id="calculate-btn" class="btn btn-success mb-4">消費カロリー計算</button>
 
+  <!-- 🔹 結果表示 -->
+  <div id="result" class="alert alert-info mt-3"></div>
+
+  <!-- 🔹 チャート -->
+  <div class="mt-4">
+    <canvas id="comparisonChart" height="150" style="display:none;"></canvas>
+  </div>
+
+  <!-- 🔹 履歴 -->
+  <h4 class="mt-5">履歴</h4>
+  <ul id="history-list" class="list-group mb-4"></ul>
+
+  <!-- 🔹 CSV -->
+  <button id="download-csv" class="btn btn-outline-primary">CSVダウンロード</button>
+
+  <!-- 🔹 あなたの calorie.js を読み込み -->
   <script type="module" src="calorie.js"></script>
+
 </body>
 </html>
