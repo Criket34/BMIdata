@@ -55,10 +55,14 @@
           <small class="form-text text-muted">未入力の場合は今日の日付が使用されます</small>
         </div>
 
+        <!-- ★ ボタン群（CSVの右にグラフページリンク） -->
         <div class="d-flex top-buttons mb-3">
           <button id="set-goal-btn" class="btn btn-secondary">目標設定</button>
           <button id="calculate-btn" class="btn btn-primary">計算</button>
           <button id="download-csv" class="btn btn-success">CSV出力</button>
+
+          <!-- ★ 新規追加：グラフページへ移動 -->
+          <a href="calorie-graph.html" class="btn btn-info ml-2">グラフを見る</a>
         </div>
 
         <canvas id="comparisonChart" height="160" style="display:none;"></canvas>
@@ -75,7 +79,7 @@
 
     <hr>
 
-    <!-- 下部：運動エントリ（スクロール可能） -->
+    <!-- 下部：運動エントリ -->
     <div class="row">
       <div class="col-12">
         <h5>運動項目</h5>
@@ -94,5 +98,3 @@
   <script type="module" src="calorie.js"></script>
 </body>
 </html>
-
-
