@@ -63,6 +63,7 @@ function createCategorySelect() {
   sel.innerHTML = opts;
   return sel;
 }
+
 function createActivitySelect(disabled = true) {
   const sel = document.createElement("select");
   sel.className = "form-control activity-select mb-2";
@@ -70,6 +71,7 @@ function createActivitySelect(disabled = true) {
   sel.innerHTML = `<option value="" disabled selected>運動種類</option>`;
   return sel;
 }
+
 function createDurationInput() {
   const inp = document.createElement("input");
   inp.type = "number";
@@ -78,20 +80,24 @@ function createDurationInput() {
   inp.placeholder = "分";
   return inp;
 }
+
 function createKcalDisplay() {
   const d = document.createElement("div");
   d.className = "kcal-result";
   return d;
 }
+
 function populateActivityOptions(category, activitySelect) {
   const items = CATEGORIES[category];
   activitySelect.innerHTML = `<option value="" disabled selected>運動種類</option>` +
     Object.entries(items).map(([name]) => `<option value="${name}">${name}</option>`).join("");
   activitySelect.disabled = false;
 }
+
 function calcKcal(met, weight, minutes) {
   return met * weight * (minutes / 60);
 }
+
 function todayISODate() {
   return new Date().toISOString().slice(0,10);
 }
@@ -153,7 +159,6 @@ function addEntry(initial = {}) {
   return wrapper;
 }
 
-// 最低1つ表示
 addEntry();
 addEntryBtn?.addEventListener("click", () => addEntry());
 
@@ -189,6 +194,8 @@ async function calculateAndSave() {
     return;
   }
 
+  const goalValue = parseFloat(localStorage.getItem("calorieGoal")) || 0;
+
   const now = new Date();
   const rec = {
     userId: currentUID,
@@ -196,6 +203,7 @@ async function calculateAndSave() {
     timestamp: now.getTime(),
     activities,
     total: Math.round(total),
+    goal: goalValue,           // ←★ 履歴に目標カロリーを追加
     isWeekend: (new Date(dateValue).getDay()===0 || new Date(dateValue).getDay()===6) ? 1 : 0
   };
 
@@ -231,7 +239,8 @@ function loadHistory() {
       const activitiesText = (rec.activities || []).map(a => `${a.type}(${a.time_min}分=${a.kcal}kcal)`).join(" / ");
 
       li.innerHTML = `<div><strong>${rec.date}</strong> (${dateStr}) — ${rec.total} kcal</div>
-                      <div class="small text-muted">${activitiesText}</div>`;
+                      <div class="small text-muted">${activitiesText}</div>
+                      <div class="small">目標: ${rec.goal || 0} kcal</div>`;
 
       const delBtn = document.createElement("button");
       delBtn.className = "btn btn-sm btn-outline-danger float-end";
@@ -283,7 +292,7 @@ function updateChartForDate(targetDate) {
       return;
     }
     recs.sort((a,b) => b.timestamp - a.timestamp);
-    const latest = recs[0]; // 最新のみ
+    const latest = recs[0];
     renderChart(goal, latest.total || 0);
   }, { onlyOnce: true });
 }
