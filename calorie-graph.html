@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>消費カロリー グラフ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Bootstrap -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* 左上の戻るボタン（固定） */
+    #back-btn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body class="p-3">
+
+  <!-- 元のページへ戻る -->
+  <a href="calorie.html" class="btn btn-primary" id="back-btn">カロリー記録に戻る</a>
+
+  <div class="container mt-5">
+    <h2>消費カロリー比較グラフ（最新30件）</h2>
+    <canvas id="calorieChart" width="400" height="200"></canvas>
+  </div>
+
+  <!-- JSファイル -->
+  <script type="module" src="calorie-graph.js"></script>
+</body>
+</html>
