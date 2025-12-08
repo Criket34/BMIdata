@@ -35,21 +35,30 @@ onAuthStateChanged(auth, (user) => {
 function loadCalorieData() {
   if (!currentUID) return;
 
-  const historyRef = ref(db, `calorie_history/${currentUID}`);
+  // 実際の保存場所に合わせて修正
+  const historyRef = ref(db, `calorieRecords/${currentUID}`);
 
   onValue(historyRef, (snapshot) => {
     const data = snapshot.val();
 
     if (!data) {
-      alert("消費カロリー履歴がありません。");
+      document.getElementById("data-count").textContent = "データなし";
       return;
     }
 
-    // 最新順でソート → 30件に制限
     const entries = Object.entries(data)
-      .map(([key, value]) => ({ key, ...value, dateObj: new Date(value.date) }))
-      .sort((a, b) => b.dateObj - a.dateObj)
+      .map(([key, value]) => ({
+        key,
+        date: value.date,
+        goal: value.goal ?? 0,
+        total: value.total ?? 0,
+        timestamp: value.timestamp ?? 0
+      }))
+      .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 30);
+
+    document.getElementById("data-count").textContent =
+      `読み込んだデータ数：${entries.length}件`;
 
     drawCalorieChart(entries);
   });
@@ -63,27 +72,27 @@ let calorieChart = null;
 function drawCalorieChart(entries) {
   const ctx = document.getElementById("calorieChart").getContext("2d");
 
-  // 古い順に並べ替え（見やすい）
+  // 古い順に並べ替え
   const sorted = [...entries].sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const labels = sorted.map(e => e.date);
-  const actualCalories = sorted.map(e => e.totalCalories ?? 0);
-  const goalCalories = sorted.map(e => e.goalCalories ?? 0);
+  const actualCalories = sorted.map(e => e.total);
+  const goalCalories = sorted.map(e => e.goal);
 
   if (calorieChart) calorieChart.destroy();
 
   calorieChart = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: labels,
+      labels,
       datasets: [
         {
           label: "実際の消費カロリー (kcal)",
-          data: actualCalories,
+          data: actualCalories
         },
         {
           label: "目標消費カロリー (kcal)",
-          data: goalCalories,
+          data: goalCalories
         }
       ]
     },
@@ -92,17 +101,16 @@ function drawCalorieChart(entries) {
       plugins: {
         title: {
           display: true,
-          text: "目標 vs 実際の消費カロリー（30件）"
-        },
-        tooltip: {
-          mode: "index",
-          intersect: false
+          text: "目標 vs 実際の消費カロリー（最新30件）"
         }
       },
       scales: {
         y: {
           beginAtZero: true,
-          title: { display: true, text: "kcal" }
+          title: {
+            display: true,
+            text: "kcal"
+          }
         }
       }
     }
