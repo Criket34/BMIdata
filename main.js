@@ -80,15 +80,21 @@ document.getElementById('button-submit').addEventListener('click', async () => {
 
   let message = '';
   const bmiNum = parseFloat(bmi);
-  if (bmiNum < 18.5) {
-    message = '低体重です。';
-  } else if (bmiNum < 25) {
-    message = '普通体重です。';
-  } else if (bmiNum < 30) {
-    message = '肥満（1度）です。';
-  } else {
-    message = '高度肥満です。';
-  }
+if (bmiNum < 18.5) {
+  message = '低体重（やせ）です。';
+} else if (bmiNum < 25) {
+  message = '普通体重です。';
+} else if (bmiNum < 30) {
+  message = '肥満（1度）です。';
+} else if (bmiNum < 35) {
+  message = '肥満（2度）です。';
+} else if (bmiNum < 40) {
+  message = '肥満（3度）です。';
+} else if (bmiNum < 45) {
+  message = '肥満（4度）です。';
+} else {
+  message = '高度肥満です。';
+}
   messageOutput.textContent = message;
 
   const user = auth.currentUser;
@@ -197,3 +203,4 @@ auth.onAuthStateChanged(user => {
     }
   }
 });
+
