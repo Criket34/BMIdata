@@ -124,12 +124,20 @@ function generateComment(duration, quality, sleepDate) {
     score += 3;
   }
 
-  if (sleepHour >= 19 && sleepHour < 23) {
-    messages.push("理想的な就寝時間です。");
-    score += 3;
-  } else {
-    messages.push("就寝時間を早めると良いでしょう。");
-  }
+// 就寝時間による評価
+if (sleepHour >= 19 && sleepHour < 23) {
+  messages.push("理想的な就寝時間です。生活リズムが整っています。");
+  score += 3;
+} else if (
+  (sleepHour >= 23 && sleepHour < 24) ||
+  (sleepHour >= 0 && sleepHour < 1)
+) {
+  messages.push("やや遅めの就寝時間です。可能であればもう少し早めましょう。");
+  score += 1;
+} else {
+  messages.push("就寝時間が遅めです。生活リズムの見直しをおすすめします。");
+}
+
 
   let summary = "";
   if (score <= 3) summary = "改善の余地あり。";
@@ -240,3 +248,4 @@ document.getElementById("download-csv").addEventListener("click", async () => {
     URL.revokeObjectURL(url);
   }
 });
+
