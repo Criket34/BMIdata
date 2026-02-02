@@ -59,7 +59,7 @@ document.getElementById("record-button").addEventListener("click", () => {
   if (wakeDate <= sleepDate) wakeDate.setDate(wakeDate.getDate() + 1);
 
   const durationMin = Math.round((wakeDate - sleepDate) / 60000);
-  const chronotype = getChronotype(sleepDate);
+  const chronotype = getChronotype(wakeDate);
   const { comment, score } = generateComment(durationMin, quality, sleepDate);
 
   displayResult(durationMin, chronotype, comment, score);
@@ -248,5 +248,6 @@ document.getElementById("download-csv").addEventListener("click", async () => {
     URL.revokeObjectURL(url);
   }
 });
+
 
 
