@@ -85,10 +85,8 @@ document.getElementById("record-button").addEventListener("click", () => {
 // クロノタイプ判定
 function getChronotype(wakeDate) {
   const hour = wakeDate.getHours();
-  if (hour >= 5 && hour < 8) return "朝型";
-  if (hour >= 8 && hour < 11) return "やや朝型";
-  if (hour >= 11 && hour < 15) return "中間型";
-  if (hour >= 15 && hour < 20) return "やや夜型";
+  if (hour < 8) return "朝型";
+  if (hour<12) return "中間型";
   return "夜型";
 }
 
@@ -248,6 +246,7 @@ document.getElementById("download-csv").addEventListener("click", async () => {
     URL.revokeObjectURL(url);
   }
 });
+
 
 
 
